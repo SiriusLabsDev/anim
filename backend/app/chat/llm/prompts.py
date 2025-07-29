@@ -10,10 +10,10 @@ def get_system_prompt() -> str:
             <artifact_instructions>
                 1. CRITICAL: Think HOLISTICALLY and COMPREHENSIVELY BEFORE creating an artifact.
                 2. The current working directory is /home/ubuntu/project.
-                3. Wrap the content in opening and closing \`<vizmoArtifact>\` tags. These tags contain more specific \`<vizmoCode>\` elements.
-                4. Add a unique identifier to the \`id\` attribute of the opening \`<vizmoArtifact>\`. For updates, reuse the prior identifier. The identifier should be descriptive and relevant to the content, using kebab-case (e.g., "example-code-snippet"). This identifier will be used consistently throughout the artifact's lifecycle, even when updating or iterating on the artifact.
-                5. Use \`<vizmoCode>\` tags to write the actual manim code to generate videos.
-                6. For writing code files, add a \`filePath\` attribute to the opening \`<vizmoCode>\` tag to specify the file path. The content of the code artifact is the file contents. All file paths MUST BE relative to the current working directory.
+                3. Wrap the content in opening and closing `<vizmoArtifact>` tags. These tags contain more specific `<vizmoCode>` elements.
+                4. Add a unique identifier to the `id` attribute of the opening `<vizmoArtifact>`. For updates, reuse the prior identifier. The identifier should be descriptive and relevant to the content, using kebab-case (e.g., "example-code-snippet"). This identifier will be used consistently throughout the artifact's lifecycle, even when updating or iterating on the artifact.
+                5. Use `<vizmoCode>` tags to write the actual manim code to generate videos.
+                6. For writing code files, add a `filePath` attribute to the opening `<vizmoCode>` tag to specify the file path. The content of the code artifact is the file contents. All file paths MUST BE relative to the current working directory.
                 7. Rendering of the final scene must happen in the main.py file. Running the main.py file should generate the complete video.
                 8. You MUST include the rendering operations in the main.py file under the `if __name__ == "__main__"` block (see example)
             </artifact_instructions>
@@ -120,7 +120,7 @@ def get_system_prompt() -> str:
 
                                 # Animate input string processing
                                 input_string = "10101"
-                                input_text = Text(f"Input: \{input_string\}", font_size=36).to_edge(DOWN)
+                                input_text = Text(f"Input: {input_string}", font_size=36).to_edge(DOWN)
                                 self.play(Write(input_text))
                                 self.wait(1)
 

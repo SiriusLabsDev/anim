@@ -1,6 +1,6 @@
 import re
 import os
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 
 
@@ -164,7 +164,8 @@ class VizmoParser:
             artifact_files = []
             
             # Create directory for this artifact if it doesn't exist
-            artifact_dir = os.path.join(target_directory, artifact.id)
+            # artifact_dir = os.path.join(target_directory, artifact.id)
+            artifact_dir = target_directory
             os.makedirs(artifact_dir, exist_ok=True)
             
             for code_block in artifact.code_blocks:
@@ -244,58 +245,3 @@ class VizmoParser:
                 )
         
         return issues
-
-
-# Example usage and testing
-def main():
-    """Example usage of the VizmoParser."""
-    
-    # Sample LLM response (based on your example)
-    sample_response = '''
-    I'll create a video that explains deterministic finite automata.
-    
-    <vizmoArtifact id="deterministic-finite-automaton-explainer">
-        <vizmoCode filePath="main.py"> 
-            from manim import *
-
-            class DFAAnimation(Scene):
-                def construct(self):
-                    # Title
-                    title = Text("Deterministic Finite Automaton (DFA)").to_edge(UP)
-                    self.play(Write(title))
-                    self.wait(1)
-
-            if __name__ == "__main__":
-                config.media_width = "100%"
-                config.verbosity = "INFO"
-                scene = DFAAnimation()
-                scene.render()
-        </vizmoCode>
-        <vizmoCode filePath="utils.py">
-            def helper_function():
-                return "This is a helper function"
-        </vizmoCode>
-    </vizmoArtifact>
-    '''
-    
-    # Create parser
-    parser = VizmoParser(base_directory="./output")
-    
-    # Parse the response
-    artifacts = parser.parse_response(sample_response)
-    
-    # Validate artifacts
-    issues = parser.validate_artifacts(artifacts)
-    if issues:
-        print("\nValidation issues:")
-        for issue in issues:
-            print(f"  - {issue}")
-    else:
-        print("\nAll artifacts are valid!")
-    
-    # Create files
-    created_files = parser.create_files(artifacts)
-    
-
-if __name__ == "__main__":
-    main()
