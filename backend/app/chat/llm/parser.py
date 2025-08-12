@@ -3,27 +3,19 @@ import os
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
-
 @dataclass
-class VizmoCode:
-    """Represents a code block within a vizmo artifact."""
-    file_path: str
+class CodeBlock:
+    """Represents a Python code block extracted from markdown."""
     content: str
+    start_line: int
+    end_line: int
 
 
-@dataclass
-class VizmoArtifact:
-    """Represents a complete vizmo artifact with its ID and code blocks."""
-    id: str
-    code_blocks: List[VizmoCode]
-
-
-class VizmoParser:
-    """Parser for extracting vizmo artifacts from LLM responses."""
+class MarkdownPythonParser:
+    """Parser for extracting Python code blocks from markdown format."""
     
-    # Regex patterns
-    ARTIFACT_PATTERN = r'<vizmoArtifact\s+id="([^"]+)">(.*?)</vizmoArtifact>'
-    CODE_PATTERN = r'<vizmoCode(?:\s+filePath="([^"]+)")?\s*>(.*?)</vizmoCode>'
+    # Regex pattern to match ```py ... ``` blocks
+    PYTHON_CODE_PATTERN = r'```py\n*([\s\S]*?)\n*```'
     
     def __init__(self, base_directory: str = "."):
         """
@@ -33,73 +25,6 @@ class VizmoParser:
             base_directory: Base directory where files will be created
         """
         self.base_directory = base_directory
-    
-    def parse_response(self, llm_response: str) -> List[VizmoArtifact]:
-        """
-        Parse an LLM response and extract all vizmo artifacts.
-        
-        Args:
-            llm_response: The raw response from the LLM
-            
-        Returns:
-            List of VizmoArtifact objects
-        """
-        artifacts = []
-        
-        # Find all vizmo artifacts in the response
-        artifact_matches = re.finditer(
-            self.ARTIFACT_PATTERN, 
-            llm_response, 
-            re.DOTALL | re.IGNORECASE
-        )
-        
-        for match in artifact_matches:
-            artifact_id = match.group(1)
-            artifact_content = match.group(2)
-            
-            # Parse code blocks within this artifact
-            code_blocks = self._parse_code_blocks(artifact_content)
-            
-            artifact = VizmoArtifact(
-                id=artifact_id,
-                code_blocks=code_blocks
-            )
-            artifacts.append(artifact)
-        
-        return artifacts
-    
-    def _parse_code_blocks(self, artifact_content: str) -> List[VizmoCode]:
-        """
-        Parse code blocks within an artifact.
-        
-        Args:
-            artifact_content: Content within a vizmoArtifact tag
-            
-        Returns:
-            List of VizmoCode objects
-        """
-        code_blocks = []
-        
-        code_matches = re.finditer(
-            self.CODE_PATTERN,
-            artifact_content,
-            re.DOTALL | re.IGNORECASE
-        )
-        
-        for match in code_matches:
-            file_path = match.group(1) or "main.py"  # Default to main.py if no path
-            content = match.group(2)
-            
-            # Clean up the content (remove leading/trailing whitespace from each line)
-            content = self._clean_content(content)
-            
-            code_block = VizmoCode(
-                file_path=file_path,
-                content=content
-            )
-            code_blocks.append(code_block)
-        
-        return code_blocks
     
     def _clean_content(self, content: str) -> str:
         """
@@ -142,106 +67,280 @@ class VizmoParser:
             lines = cleaned_lines
         
         return '\n'.join(lines)
-    
-    def create_files(self, artifacts: List[VizmoArtifact], 
-                    target_directory: Optional[str] = None) -> Dict[str, List[str]]:
+
+    def parse_response(self, text_content: str) -> List[CodeBlock]:
         """
-        Create files from parsed artifacts.
+        Parse text content and extract all Python code blocks.
         
         Args:
-            artifacts: List of VizmoArtifact objects
-            target_directory: Directory to create files in (overrides base_directory)
+            text_content: The raw text content containing ```py blocks
             
         Returns:
-            Dictionary mapping artifact IDs to lists of created file paths
+            List of CodeBlock objects
+        """
+        code_blocks = []
+        lines = text_content.split('\n')
+        
+        # Find all Python code blocks
+        matches = re.finditer(
+            self.PYTHON_CODE_PATTERN, 
+            text_content, 
+            re.DOTALL | re.IGNORECASE
+        )
+        
+        for i, match in enumerate(matches):
+            content = match.group(1)
+            content = self._clean_content(content)
+
+            if content.startswith("thon"):
+                content = content[len("thon"):]
+            
+            # Calculate line numbers for this match
+            start_pos = match.start()
+            lines_before = text_content[:start_pos].count('\n')
+            lines_in_content = content.count('\n')
+            
+            code_block = CodeBlock(
+                content=content,
+                start_line=lines_before + 2,  # +1 for ```py line, +1 for 0-based index
+                end_line=lines_before + 2 + lines_in_content
+            )
+            code_blocks.append(code_block)
+        
+        return code_blocks
+    
+    def extract_single_code_block(self, text_content: str) -> Optional[str]:
+        """
+        Extract the first Python code block found.
+        
+        Args:
+            text_content: The raw text content
+            
+        Returns:
+            The content of the first code block, or None if no blocks found
+        """
+        code_blocks = self.parse_response(text_content)
+        return code_blocks[0].content if code_blocks else None
+    
+    def extract_all_code_blocks(self, text_content: str) -> List[str]:
+        """
+        Extract all Python code blocks as a list of strings.
+        
+        Args:
+            text_content: The raw text content
+            
+        Returns:
+            List of code block contents
+        """
+        code_blocks = self.parse_response(text_content)
+        return [block.content for block in code_blocks]
+    
+    def create_file(self, code_content: str, filename: str = "main.py", 
+                   target_directory: Optional[str] = None) -> str:
+        """
+        Create a single Python file from code content.
+        
+        Args:
+            code_content: The Python code content
+            filename: Name of the file to create
+            target_directory: Directory to create file in (overrides base_directory)
+            
+        Returns:
+            Path to the created file
         """
         if target_directory is None:
             target_directory = self.base_directory
         
-        created_files = {}
+        # Create directory if it doesn't exist
+        os.makedirs(target_directory, exist_ok=True)
         
-        for artifact in artifacts:
-            artifact_files = []
-            
-            # Create directory for this artifact if it doesn't exist
-            # artifact_dir = os.path.join(target_directory, artifact.id)
-            artifact_dir = target_directory
-            os.makedirs(artifact_dir, exist_ok=True)
-            
-            for code_block in artifact.code_blocks:
-                # Resolve file path
-                file_path = os.path.join(artifact_dir, code_block.file_path)
-                
-                # Create directory structure if needed
-                file_dir = os.path.dirname(file_path)
-                if file_dir:
-                    os.makedirs(file_dir, exist_ok=True)
-                
-                # Write file
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(code_block.content)
-                
-                artifact_files.append(file_path)
-            
-            created_files[artifact.id] = artifact_files
+        # Create file path
+        file_path = os.path.join(target_directory, filename)
         
-        return created_files
+        # Write file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(code_content)
+        
+        return file_path
     
-    def parse_and_create_files(self, llm_response: str, 
-                              target_directory: Optional[str] = None) -> Dict[str, List[str]]:
+    def create_files_from_blocks(self, code_blocks: List[CodeBlock], 
+                                base_filename: str = "code_block",
+                                target_directory: Optional[str] = None) -> List[str]:
         """
-        Parse LLM response and create files in one step.
+        Create multiple Python files from code blocks.
         
         Args:
-            llm_response: The raw response from the LLM
+            code_blocks: List of CodeBlock objects
+            base_filename: Base name for files (will be numbered)
             target_directory: Directory to create files in
             
         Returns:
-            Dictionary mapping artifact IDs to lists of created file paths
+            List of created file paths
         """
-        artifacts = self.parse_response(llm_response)
-        return self.create_files(artifacts, target_directory)
+        if target_directory is None:
+            target_directory = self.base_directory
+        
+        created_files = []
+        
+        for i, block in enumerate(code_blocks):
+            if len(code_blocks) == 1:
+                filename = f"{base_filename}.py"
+            else:
+                filename = f"{base_filename}_{i+1}.py"
+            
+            file_path = self.create_file(
+                block.content, 
+                filename, 
+                target_directory
+            )
+            created_files.append(file_path)
+        
+        return created_files
     
-    def validate_artifacts(self, artifacts: List[VizmoArtifact]) -> List[str]:
+    def parse_and_create_file(self, text_content: str, 
+                             filename: str = "main.py",
+                             target_directory: Optional[str] = None,
+                             use_first_block: bool = True) -> Optional[str]:
         """
-        Validate parsed artifacts and return any issues found.
+        Parse text content and create a Python file from the first code block.
         
         Args:
-            artifacts: List of VizmoArtifact objects
+            text_content: The raw text content
+            filename: Name of the file to create
+            target_directory: Directory to create file in
+            use_first_block: If True, use only the first block; if False, combine all blocks
             
         Returns:
-            List of validation error messages
+            Path to the created file, or None if no code blocks found
         """
-        issues = []
+        code_blocks = self.parse_response(text_content)
         
-        for artifact in artifacts:
-            # Check if artifact has at least one code block
-            if not artifact.code_blocks:
-                issues.append(f"Artifact '{artifact.id}' has no code blocks")
-                continue
-            
-            # Check if there's a main.py file
-            main_py_found = any(
-                code.file_path == "main.py" 
-                for code in artifact.code_blocks
+        if not code_blocks:
+            return None
+        
+        if use_first_block:
+            code_content = code_blocks[0].content
+            print(code_content)
+        else:
+            # Combine all code blocks with separators
+            code_content = '\n\n# ' + '='*50 + '\n\n'.join(
+                block.content for block in code_blocks
             )
-            
-            if not main_py_found:
-                issues.append(f"Artifact '{artifact.id}' missing main.py file")
-            
-            # Check for duplicate file paths
-            file_paths = [code.file_path for code in artifact.code_blocks]
-            duplicates = set()
-            seen = set()
-            
-            for path in file_paths:
-                if path in seen:
-                    duplicates.add(path)
-                seen.add(path)
-            
-            if duplicates:
-                issues.append(
-                    f"Artifact '{artifact.id}' has duplicate file paths: {duplicates}"
-                )
         
-        return issues
+        return self.create_file(code_content, filename, target_directory)
+    
+    def parse_and_create_multiple_files(self, text_content: str,
+                                       base_filename: str = "code_block",
+                                       target_directory: Optional[str] = None) -> List[str]:
+        """
+        Parse text content and create multiple Python files from all code blocks.
+        
+        Args:
+            text_content: The raw text content
+            base_filename: Base name for files
+            target_directory: Directory to create files in
+            
+        Returns:
+            List of created file paths
+        """
+        code_blocks = self.parse_response(text_content)
+        return self.create_files_from_blocks(code_blocks, base_filename, target_directory)
+    
+    def get_code_block_info(self, text_content: str) -> List[Dict]:
+        """
+        Get information about all code blocks without extracting content.
+        
+        Args:
+            text_content: The raw text content
+            
+        Returns:
+            List of dictionaries with code block information
+        """
+        code_blocks = self.parse_response(text_content)
+        
+        info = []
+        for i, block in enumerate(code_blocks):
+            info.append({
+                'index': i,
+                'start_line': block.start_line,
+                'end_line': block.end_line,
+                'line_count': block.content.count('\n') + 1,
+                'char_count': len(block.content),
+                'has_imports': 'import ' in block.content,
+                'has_classes': 'class ' in block.content,
+                'has_functions': 'def ' in block.content
+            })
+        
+        return info
+
+
+# Example usage and testing
+def main():
+    """Example usage of the MarkdownPythonParser."""
+    
+    # Sample markdown content with Python code blocks
+    sample_content = '''
+    Here's some Python code to create a simple animation:
+    
+    ```py
+    from manim import *
+    
+    class SimpleAnimation(Scene):
+        def construct(self):
+            circle = Circle()
+            self.play(Create(circle))
+            self.wait(1)
+    ```
+    
+    And here's another code block with utilities:
+    
+    ```py
+    def helper_function():
+        return "This is a helper"
+    
+    def another_helper():
+        print("Another helper function")
+    ```
+    
+    That's all the code!
+    '''
+    
+    # Create parser
+    parser = MarkdownPythonParser(base_directory="./output")
+    
+    # Parse and get information
+    code_blocks = parser.parse_response(sample_content)
+    print(f"Found {len(code_blocks)} code block(s):")
+    
+    for i, block in enumerate(code_blocks):
+        print(f"  Block {i+1}:")
+        print(f"    Lines: {block.start_line}-{block.end_line}")
+        print(f"    Length: {len(block.content)} characters")
+        preview = block.content.split('\n')[0][:50]
+        print(f"    Preview: {preview}...")
+    
+    # Get detailed info
+    info = parser.get_code_block_info(sample_content)
+    print("\nDetailed information:")
+    for block_info in info:
+        print(f"  Block {block_info['index']+1}: {block_info['line_count']} lines, "
+              f"has imports: {block_info['has_imports']}, "
+              f"has classes: {block_info['has_classes']}")
+    
+    # Create single file from first block
+    single_file = parser.parse_and_create_file(
+        sample_content,
+        "main.py",
+        "./output"
+    )
+    
+    if single_file:
+        print(f"\nCreated single file: {single_file}")
+    
+    # Extract just the code content
+    all_code = parser.extract_all_code_blocks(sample_content)
+    print(f"\nExtracted {len(all_code)} code blocks as strings")
+
+
+if __name__ == "__main__":
+    main()

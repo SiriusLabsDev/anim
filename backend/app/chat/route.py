@@ -2,6 +2,7 @@ from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.responses import FileResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from pathlib import Path
+from pydantic import BaseModel
 import subprocess
 import uuid
 
@@ -22,17 +23,29 @@ def get_video_file(directory):
     
     return None
 
+class ChatRequest(BaseModel):
+    prompt: str
+
 @router.post('/chat')
-async def chat(prompt: str = Body(...)):
+async def chat(chat_request: ChatRequest = Body(...)):
+    prompt = chat_request.prompt
+    print(prompt)
     messages = [
         SystemMessage(get_system_prompt()),
         HumanMessage(prompt)
     ]
     response = await model.ainvoke(messages)
+    print(response)
 
     random_id = str(uuid.uuid1())
     temp_wd = f"./output/{random_id}"
-    parser.parse_and_create_files(response.content, target_directory=temp_wd)
+
+    content = response.content
+    
+    if isinstance(content, list):
+        content = content[0]
+
+    parser.parse_and_create_file(content, target_directory=temp_wd)
 
     subprocess.run(["python", "main.py"], cwd=temp_wd)
 
