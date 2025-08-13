@@ -52,3 +52,8 @@ def get_outlining_prompt() -> str:
     return """
         You are an expert prompt writer and animation creator. Given a user prompt, your job is to create a detailed outline and layout prompt that can be given to an LLM to generate manim animations. In your prompt, focus on the scenes of the animation video. Vividly describe how the scenes in the animation should look line and flow. For the user prompt, you also need to expand on the contents of a topic as to how the topic in the user prompt will be explained via the animation.
     """  
+
+def get_chat_title_prompt() -> str:
+    return """
+        You are an expert title writer. Given a user prompt, your job is to create a title for the chat that will be created for the user prompt. The title should be concise and descriptive.
+    """

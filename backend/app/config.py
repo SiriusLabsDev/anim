@@ -10,6 +10,9 @@ def check_config() -> None:
     required_env_vars = [
         'FRONTEND_URL',
         'GOOGLE_API_KEY',
+        'ASYNC_DB_URI',
+        'CLERK_SECRET_KEY',
+        'DB_URI',
     ]
     
     for var in required_env_vars:

@@ -1,0 +1,69 @@
+import asyncio
+from fastapi import HTTPException, Depends, status, Request
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.config import config
+from app.schemas import TokenData
+
+from clerk_backend_api import Clerk
+from clerk_backend_api.security.types import AuthenticateRequestOptions, RequestState
+
+from app.database.core import get_db_async
+from app.database.models import User
+
+
+def verify(request: Request) -> RequestState:
+    sdk = Clerk(
+        bearer_auth=config['CLERK_SECRET_KEY'],
+    )
+    request_state = sdk.authenticate_request(
+        request,
+        AuthenticateRequestOptions(
+            authorized_parties=['http://localhost:3000'],
+        )
+    )
+
+    return request_state
+
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db_async)):
+    loop = asyncio.get_running_loop()
+
+    if not loop or not loop.is_running():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+         
+    request_state = await loop.run_in_executor(None, verify, request)
+
+    if not request_state.is_signed_in:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Invalid or missing token"
+        )
+
+    user_id = request_state.payload.get('sub')
+
+    result = await db.execute(select(User).where(User.id == user_id))
+
+    user = result.scalar_one_or_none()
+    email = user.email if user else None
+
+    if not user:
+        async with Clerk(bearer_auth=config['CLERK_SECRET_KEY']) as clerk:
+            clerk_user = await clerk.users.get_async(user_id=request_state.payload.get('sub'))
+            email = clerk_user.email_addresses[0].email_address if clerk_user.email_addresses else None
+
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User email not found"
+                )
+                
+        user = User(id=user_id, email=email)
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+    print(user_id, email)
+    return TokenData(user_id=user_id, email=email)

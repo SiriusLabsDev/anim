@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status, Depends
 from fastapi.responses import FileResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from pathlib import Path
@@ -6,8 +6,15 @@ from pydantic import BaseModel
 import subprocess
 import uuid
 
-from app.chat.llm import model, parser
-from app.chat.llm.prompts import get_system_prompt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.chat.llm import model, parser, scripting_model
+from app.chat.llm.prompts import get_system_prompt, get_chat_title_prompt
+
+from app.database.core import get_db_async
+from app.database.models import User, Chat, ChatHistory
+from app.clerk import get_current_user
+from app.schemas import TokenData
 
 router = APIRouter(prefix='/chat', tags=['Chat'])
 
@@ -25,6 +32,41 @@ def get_video_file(directory):
 
 class ChatRequest(BaseModel):
     prompt: str
+
+@router.get('/test')
+def test_route(current_user: TokenData = Depends(get_current_user)):
+    return {
+        "message": "Test route is working", 
+        "user_id": current_user.user_id, 
+        "email": current_user.email
+    }
+
+
+@router.post('/create')
+async def create_chat(
+    chat_request: ChatRequest = Body(...), db: AsyncSession = Depends(get_db_async),
+):
+    prompt = chat_request.prompt
+
+    messages = [
+        SystemMessage(get_chat_title_prompt()),
+        HumanMessage(prompt)
+    ]
+
+    response = await scripting_model.ainvoke(messages)
+
+    content = response.content
+    
+    if isinstance(content, list):
+        content = content[0]
+
+    chat_title = content.strip()
+    if not chat_title:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chat title cannot be empty")
+
+    db_chat = Chat(title=chat_title, user_id="default_user_id") 
+    
+    
 
 @router.post('/chat')
 async def chat(chat_request: ChatRequest = Body(...)):
