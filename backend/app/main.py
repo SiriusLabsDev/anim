@@ -1,4 +1,7 @@
+import asyncio
+
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import config, check_config
@@ -18,3 +21,14 @@ app.add_middleware(
 )
 
 app.include_router(chat_router)
+
+async def event_stream():
+    counter = 0
+    while True:
+        yield f"data: {counter}\n\n"
+        counter += 1
+        await asyncio.sleep(1)  # simulate new data every second
+    
+@app.get("/stream")
+async def stream():
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

@@ -1,18 +1,38 @@
 "use client"
 
 import { useState  } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { FaArrowUp } from "react-icons/fa6"
+import { usePromptStore } from "@/store/usePromptStore"
+import { useRouter } from "next/navigation"
+import PromptBox from "@/components/PromptBox"
 
-type LoadingState = "idle" | "generating-outline" | "generating-video" | "complete"
+// type LoadingState = "idle" | "generating-outline" | "generating-video" | "complete"
+
+async function getTitle(prompt: string): Promise<string> {
+  console.log(prompt)
+  return "Random title"
+}
 
 export default function ChatPage() {
+  const [prompt, setPrompt] = useState<string>("");
+  const router = useRouter();
 
-  const downloadVideo = () => {
+  const onSubmit = () => {
+    try {
+      // get title
+      const title = getTitle(prompt);
+      const id = "random-id";
+      const { setLastPrompt, setWaitingForMessage } = usePromptStore.getState();
+
+      setLastPrompt(prompt);
+      setWaitingForMessage(true);
+      router.push(`/chat/${id}`);
+      setPrompt("");
+
+    } catch (error) {
+      console.error("Error submitting prompt:", error);  
+    }
   }
 
-  const [prompt, setPrompt] = useState<string>("");
 
   return (
     <div className="relative flex flex-col justify-center items-center h-screen w-full">
@@ -27,22 +47,8 @@ export default function ChatPage() {
         <h2 className="text-[3rem] font-bold text-center">
           What{`'`}s on your mind?
         </h2>
-        <div className="flex flex-col justify-between bg-[#141415] min-h-28 w-[40rem] rounded-xl border-2">
-          <Input 
-            className="border-none bg-transparent px-4 py-6 h-4 my-1 text-[1rem]" 
-            placeholder="Ask anim to make..."
-            value={prompt}
-            onInput={(e) => {
-              setPrompt((e.target as HTMLInputElement).value)
-            }}
-          />
-          <div className="flex justify-end my-2 mx-2">
-            <Button variant="secondary" disabled={prompt === ""} 
-              className="px-2 py-0 bg-foreground scale-[0.95] disabled:bg-[#1f1f22] border-2"
-            >
-              <FaArrowUp className="p-0 m-0" color={prompt === "" ? '#ffffff' : "black"}/>
-            </Button>
-          </div>
+        <div className="flex flex-col justify-between min-h-28 w-[40rem]">
+          <PromptBox prompt={prompt} setPrompt={setPrompt} onSubmit={onSubmit}/>
         </div>
       </div>
     </div>

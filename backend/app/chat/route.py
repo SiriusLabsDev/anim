@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, HTTPException, status, Depends
+from fastapi import APIRouter, Body, HTTPException, status, Depends, WebSocket, Query
 from fastapi.responses import FileResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from pathlib import Path
@@ -66,6 +66,27 @@ async def create_chat(
 
     db_chat = Chat(title=chat_title, user_id="default_user_id") 
     
+
+@router.websocket('/ws')
+async def chat_ws(
+    ws: WebSocket,
+    chat_id: str = Query(...),
+):
+    await ws.accept()
+    try:
+        data = await ws.receive_text()
+        messages = [
+            SystemMessage(get_system_prompt()),
+            HumanMessage(data)
+        ]
+        async for chunk in model.astream(messages):
+            await ws.send_text(chunk.content)
+
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        raise e
+    finally:
+        await ws.close()
     
 
 @router.post('/chat')
