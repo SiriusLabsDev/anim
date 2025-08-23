@@ -1,16 +1,26 @@
 import asyncio
+import aioboto3
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, asdict
 from enum import Enum
 from fastapi import HTTPException, status
 import logging
 import os
+from pathlib import Path
 import psutil
 import redis.asyncio as redis
 import time
 from typing import Optional, Tuple
 import uuid
 
+from app.config import config
+from app.database.core import AsyncSessionLocal
+from app.database.models import Message, Video
+
+from sqlalchemy import select
+
+
+logger = logging.getLogger(__name__)
 
 class TaskStatus(Enum):
     QUEUED = 'queued'
@@ -33,7 +43,6 @@ class TaskInfo:
     error: Optional[str] = None
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class RedisTaskManager:
@@ -201,47 +210,75 @@ class RedisTaskManager:
             await self._process_single_task(task_id)
         
     async def _process_single_task(self, task_id: str) -> None:
-        # TODO: Add a try except block
-
         task_key = self.TASK_KEY.format(task_id=task_id)
-        
         task_info = await self.redis.hgetall(task_key)
+
+        if not task_info:
+            logger.error(f"Task {task_id} not found in Redis")
+            return
 
         logger.info(f"Processing task with info {task_info}")
         
-        await self.redis.hset(task_key, mapping={
-            "status": TaskStatus.PROCESSING.value,
-            "started_at": time.time(),
-            "processing_instance": self.instance_id
-        })
-
-        # TODO: run manim generation
-        success, output = await self.run_manim_generation(
-            task_id=task_id, 
-            manim_code=task_info["manim_code"],
-            output_dir=f"./output/{task_id}"
-        )
-        
-        if success:
+        try:
             await self.redis.hset(task_key, mapping={
-                "status": TaskStatus.COMPLETED.value,
-                "completed_at": time.time(),
-                "result": output
+                "status": TaskStatus.PROCESSING.value,
+                "started_at": time.time(),
+                "processing_instance": self.instance_id
             })
-        
-        else:
+
+            success, path_or_error = await self.run_manim_generation(
+                task_id=task_id, 
+                manim_code=task_info["manim_code"],
+                output_dir=f"{os.getcwd()}/output/{task_id}"
+            )
+            
+            if success:
+                await self.redis.hset(task_key, mapping={
+                    "status": TaskStatus.COMPLETED.value,
+                    "completed_at": time.time(),
+                    "result": path_or_error
+                })
+
+                user_id = task_info["user_id"]
+                chat_id = task_info["chat_id"]
+                message_id = task_info["message_id"]
+
+                s3_bucket = config['AWS_S3_BUCKET']
+                s3_key = f"videos/{user_id}/{chat_id}/{message_id}.mp4"
+                s3_region = config['AWS_BUCKET_REGION']
+
+                success, output = await self.upload_video_to_s3(path_or_error, s3_bucket, s3_region, s3_key)
+
+                if success:
+                    logger.info(f"Video uploaded to S3 at {s3_key}")
+                    await self.add_video_to_db(chat_id, message_id, s3_bucket, s3_key)
+                else:
+                    logger.error(f"Failed to upload video to S3: {output}")
+
+                # Delete video from local storage
+                if os.path.exists(path_or_error):
+                    os.remove(path_or_error)
+            else:
+                await self.redis.hset(task_key, mapping={
+                    "status": TaskStatus.FAILED.value,
+                    "completed_at": time.time(),
+                    "error": output
+                })
+
+            logger.info(f"Task {task_id} finished")
+        except Exception as e:
+            logger.error(f"Error processing task {task_id}: {str(e)}")
             await self.redis.hset(task_key, mapping={
                 "status": TaskStatus.FAILED.value,
                 "completed_at": time.time(),
-                "error": output
+                "error": str(e)
             })
-
-        user_id = task_info["user_id"]
-        await self.redis.delete(self.USER_ACTIVE_TASK.format(user_id=user_id))
-
-        logger.info(f"Task {task_id} completed successfully")
+        finally:
+            user_id = task_info["user_id"]
+            await self.redis.delete(self.USER_ACTIVE_TASK.format(user_id=user_id))
     
     async def run_manim_generation(self, task_id: str, manim_code: str, output_dir: str) -> Tuple[bool, str]:
+        """main.py file is created in output_dir. The video is generated in output_dir/media/videos/1080p60/."""
         try:
             os.makedirs(output_dir, exist_ok=True)
 
@@ -263,9 +300,9 @@ class RedisTaskManager:
                     timeout=60 * 20      # 20 minutes
                 )
 
-                if process.returncode == 0:
-                    return True, f"{output_dir}/random_path.mp4" 
-                
+                if process.returncode == 0 and (path_ := self.get_video_file(f"{output_dir}/media/videos/1080p60")):
+                    return True, path_.as_posix()
+
                 else:
                     return False, f"Manim execution failed: {stderr.decode()}"
             
@@ -278,7 +315,65 @@ class RedisTaskManager:
         
         except Exception as e:
             return False, str(e)
+
+    async def upload_video_to_s3(self, file_path: str, s3_bucket: str, s3_region: str, s3_key: str) -> Tuple[bool, str]:
+        session = aioboto3.Session(
+            aws_access_key_id=config['AWS_ACCESS_KEY_ID'], 
+            aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY']
+        )
+
+        async with session.client('s3', region_name=s3_region) as s3_client:
+            try:
+                with open(file_path, 'rb') as data:
+                    await s3_client.upload_fileobj(data, s3_bucket, s3_key)
+                return True, ""
+            except Exception as e:
+                logger.error(f"Error uploading video to S3: {str(e)}")
+                return False, str(e)
+
+    def get_video_file(self, directory: str) -> Optional[Path]:
+        video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v'}
+        
+        directory_path = Path(directory)
+        
+        for file_path in directory_path.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in video_extensions:
+                return file_path
     
+        return None
+    
+    async def add_video_to_db(self, chat_id: str, message_id: str, s3_bucket: str, s3_key: str):
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Message)
+                .where(
+                    Message.id == message_id, 
+                    Message.chat_id == chat_id
+                )
+            )
+            db_message = result.scalar_one_or_none()
+
+            if not db_message:
+                logger.error(f"Message {message_id} in chat {chat_id} not found in DB")
+                return
+            
+            try:
+                db_video = Video(
+                    s3_bucket=s3_bucket,
+                    s3_key=s3_key,
+                )
+
+                db.add(db_video)
+                await db.commit()
+                await db.refresh(db_video)
+
+                db_message.video_id = db_video.id
+                await db.commit()
+
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Error updating message with video ID: {str(e)}")
+
     async def _process_queue(self):
         pass
     

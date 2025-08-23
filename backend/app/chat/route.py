@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, HTTPException, status, Depends, WebSocket, Query, Request
+from fastapi import APIRouter, Body, HTTPException, status, Depends, WebSocket, Query
 from fastapi.responses import FileResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 import logging
@@ -168,9 +168,9 @@ async def chat_ws(
 
 @router.get('/running')
 async def get_running_chat(
-    current_user: TokenData = Depends(get_current_user), db: AsyncSession = Depends(get_db_async)
+    current_user: TokenData = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db_async)
 ):
-    # TODO: Add chat_id and message_id to this task info
     task_id = await task_manager.get_user_active_task_id(user_id=current_user.user_id)
     task_data = await task_manager.get_task_status(task_id)
 
@@ -186,7 +186,7 @@ async def chat(chat_request: ChatRequest = Body(...)):
         HumanMessage(prompt)
     ]
     response = await model.ainvoke(messages)
-    print(response)
+    logger.info(response)
 
     random_id = str(uuid.uuid1())
     temp_wd = f"./output/{random_id}"

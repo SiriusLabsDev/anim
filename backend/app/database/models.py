@@ -40,9 +40,22 @@ class Message(Base):
 
     prompt = Column(String, nullable=False)
     response = Column(String, nullable=True)
-    video_url = Column(String, nullable=True)
+    video_id = Column(String, ForeignKey('videos.id'), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     chat: Mapped["Chat"] = relationship("Chat", back_populates="messages")
+    video: Mapped["Video"] = relationship("Video", back_populates="message")
+
+class Video(Base):
+    __tablename__ = 'videos'
+
+    id = Column(String, primary_key=True, index=True, default=uuid4)
+    s3_bucket = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    message: Mapped["Message"] = relationship("Message", back_populates="video")

@@ -14,6 +14,10 @@ def check_config() -> None:
         'CLERK_SECRET_KEY',
         'DB_URI',
         'REDIS_URL',
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_S3_BUCKET',
+        'AWS_BUCKET_REGION'
     ]
     
     for var in required_env_vars:
