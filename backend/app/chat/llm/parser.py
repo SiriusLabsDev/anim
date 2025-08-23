@@ -79,7 +79,7 @@ class MarkdownPythonParser:
             List of CodeBlock objects
         """
         code_blocks = []
-        lines = text_content.split('\n')
+        # lines = text_content.split('\n')
         
         # Find all Python code blocks
         matches = re.finditer(
@@ -197,10 +197,12 @@ class MarkdownPythonParser:
         
         return created_files
     
-    def parse_and_create_file(self, text_content: str, 
-                             filename: str = "main.py",
-                             target_directory: Optional[str] = None,
-                             use_first_block: bool = True) -> Optional[str]:
+    def parse_and_create_file(
+        self, text_content: str, 
+        filename: str = "main.py",
+        target_directory: Optional[str] = None,
+        use_first_block: bool = True
+    ) -> Optional[str]:
         """
         Parse text content and create a Python file from the first code block.
         
@@ -229,9 +231,20 @@ class MarkdownPythonParser:
         
         return self.create_file(code_content, filename, target_directory)
     
-    def parse_and_create_multiple_files(self, text_content: str,
-                                       base_filename: str = "code_block",
-                                       target_directory: Optional[str] = None) -> List[str]:
+    def parse_and_return_code(self, text_content: str) -> Optional[str]:
+        code_blocks = self.parse_response(text_content)
+
+        if not code_blocks:
+            return None
+        
+        return code_blocks[0].content
+    
+    def parse_and_create_multiple_files(
+        self, 
+        text_content: str,
+        base_filename: str = "code_block",
+        target_directory: Optional[str] = None
+    ) -> List[str]:
         """
         Parse text content and create multiple Python files from all code blocks.
         

@@ -2,19 +2,12 @@
 
 import React from 'react'
 import { Button } from '@/components/ui/button';
-import axios from 'axios';
+import { axiosInstance } from '@/lib/api';
 
 const page = () => {
-  const onClick = () => {
-    axios.get('http://localhost:8000/chat/test', {
-        withCredentials: true,
-    })
-      .then(response => {
-        console.log(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching test route:', error);
-      });
+  const onClick = async () => {
+    const response = await axiosInstance.get('/chat/running');
+    console.log(response.data);
   }
   return (
     <div>

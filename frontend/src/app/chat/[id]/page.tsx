@@ -2,9 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { usePromptStore } from "@/store/usePromptStore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PromptBox from "@/components/PromptBox";
 import useChat from "@/hooks/useChat";
+import ShinyText from "@/components/ui/shiny-text";
 
 
 export default function Page() {
@@ -12,7 +13,24 @@ export default function Page() {
     const id = params.id as string;
     
     const { waitingForMessage } = usePromptStore();
+    const writingCodeRef = useRef<boolean>(false);
+
     const handleIncomingMessage = useCallback((message: string) => {
+        console.log("message: ", message, message.includes("`"))
+        
+        if(writingCodeRef.current) {
+            return;             // TODO: change this later
+        }
+
+        if (message.includes("```python") || message.includes("```py")) {
+            writingCodeRef.current = true;
+            if (message.includes("```py")) {
+                message = message.split("```py")[0];
+            } else {
+                message = message.split("```python")[0];
+            }
+        }
+
         setMessages(prevMessages => {
             const newMessages = [...prevMessages];
             const lastMessageIndex = newMessages.length - 1;
@@ -29,8 +47,6 @@ export default function Page() {
         });
     }, []);
 
-
-
     const [messages, setMessages] = useState([
         { sender: "user", text: "Hello, how are you?" },
         { sender: "assistant", text: "I'm fine, thank you! How can I assist you today?" },
@@ -44,7 +60,7 @@ export default function Page() {
 
     const [prompt, setPrompt] = useState<string>("");
 
-    const { connectSocket, sendMessage, setOnMessage } = useChat();
+    const { connectSocket, sendMessage, setOnMessage, responseState } = useChat();
 
     useEffect(() => {
         if(waitingForMessage) {
@@ -67,7 +83,6 @@ export default function Page() {
                 ]);
                 setOnMessage((message: string) => {
                     // add the gotten chunk to the last message
-                    console.log(message);
                     handleIncomingMessage(message);
                 }) 
             }
@@ -84,22 +99,28 @@ export default function Page() {
     }, [waitingForMessage, handleIncomingMessage]);
 
     return (
-        <div className="grid grid-cols-12">
-            <div className="col-span-6 col-start-4 h-screen bg-[#0F0F10]">
-                <div className="flex flex-col h-full m-4">
-                    <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid grid-cols-12 bg-[#0F0F10]">
+            <div className="col-span-6 col-start-4 h-fit justify-between">
+                <div className="flex flex-col h-screen overflow-hidden justify-between">
+                    <div className="flex-1 mt-8 overflow-y-auto p-4 max-h-fit">
                         {messages.map((message, index) => (
-                            <div key={index} className={`mb-4 ${"text-left"}`}>
-                                <div className={`inline-block px-4 py-2 rounded-lg ${message.sender === "user" ? "bg-[#27282D] text-white" : ""}`}>
+                            <div key={index} className={`${"text-left"}`}>
+                                <div 
+                                    className={`inline-block px-4 rounded-lg ${
+                                        message.sender === "user" ? "bg-[#27282D] text-white py-2 mb-4" : index !== messages.length - 1 ? "mb-8" : "mb-2"
+                                    }`}
+                                >
                                     {message.text}
                                 </div>
                             </div>
                         ))}
+                        <div className="px-4">
+                            {responseState === "waiting" && <div className="text-left text-gray-500"><ShinyText text="Thinking" /></div>}
+                            {responseState === "coding" && <div className="text-left text-gray-500"><ShinyText text="Writing video script" /></div>}
+                            {responseState === "generating" && <div className="text-left text-gray-500"><ShinyText text="Generating video" /></div>}
+                        </div>
                     </div>
-                    {waitingForMessage && (
-                        <div className="text-center text-gray-500">Waiting for a response...</div>
-                    )}
-                    <div>
+                    <div className="mb-8">
                         <PromptBox prompt={prompt} setPrompt={setPrompt} onSubmit={() => {}} />
                     </div> 
                 </div>

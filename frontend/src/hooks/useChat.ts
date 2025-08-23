@@ -1,11 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+type messageState = "waiting" | "writing" | "coding" | "generating"
 
 const useChat = () => {
     const socketRef = useRef<WebSocket | null>(null);
+    const [responseState, setResponseState] = useState<messageState | null>(null);
+
     const connectSocket = async () => {
-        const ws = new WebSocket('ws://localhost:8000/chat/ws?chat_id=1') // TODO: replace with dynamic chat_id
+        const ws = new WebSocket('ws://localhost:8000/api/chat/ws?chat_id=1') // TODO: replace with dynamic chat_id
         try {
-            const waitForOpen = await new Promise<void>((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 ws.onopen = () => {
                     console.log('WebSocket connection established')
                     resolve()
@@ -25,8 +29,10 @@ const useChat = () => {
     const sendMessage = (message: string) => {
         if (socketRef.current) {
             socketRef.current.send(message);
+            setResponseState("waiting");
         } else {
             console.error('WebSocket is not connected');
+            setResponseState(null);
         }
     }
 
@@ -35,6 +41,18 @@ const useChat = () => {
             socketRef.current.onmessage = (event) => {
                 const data = event.data;
                 if (data) {
+                    if (responseState === "waiting") {
+                        setResponseState("writing");
+                    }
+                    
+                    if (data === "<done/>") {
+                        setResponseState("generating");
+                    }
+
+                    if(data.includes("```")) {
+                        setResponseState("coding");
+                    }
+                    
                     callback(data);
                 } else {
                     console.error('Received unexpected data:', data);
@@ -49,6 +67,7 @@ const useChat = () => {
         connectSocket,
         setOnMessage,
         sendMessage,
+        responseState,
     } as const;
 }
 

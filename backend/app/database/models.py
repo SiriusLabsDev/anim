@@ -4,6 +4,7 @@ from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, Mapped
 
+from typing import List
 from uuid import uuid4
 
 
@@ -28,10 +29,11 @@ class Chat(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    user: Mapped[User] = relationship("User", back_populates="chats")
+    user: Mapped["User"] = relationship("User", back_populates="chats")
+    messages: Mapped[List["Message"]] = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
 
-class ChatHistory(Base):
-    __tablename__ = 'chat_history'
+class Message(Base):
+    __tablename__ = 'messages'
 
     id = Column(String, primary_key=True, index=True)
     chat_id = Column(String, ForeignKey('chats.id'), nullable=False)
@@ -42,3 +44,5 @@ class ChatHistory(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    chat: Mapped["Chat"] = relationship("Chat", back_populates="messages")

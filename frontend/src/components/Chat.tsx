@@ -30,7 +30,7 @@ export default function ChatPage() {
     }, 40000)
 
     try {
-      const response = await axios.post("http://localhost:8000/chat/chat", {
+      const response = await axios.post("http://localhost:8000/api/chat/chat", {
         prompt: prompt.trim()
       }, {
         responseType: 'blob'

@@ -13,6 +13,7 @@ def check_config() -> None:
         'ASYNC_DB_URI',
         'CLERK_SECRET_KEY',
         'DB_URI',
+        'REDIS_URL',
     ]
     
     for var in required_env_vars:
