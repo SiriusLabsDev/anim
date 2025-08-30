@@ -7,11 +7,13 @@ from sqlalchemy.orm import relationship, Mapped
 from typing import List
 from uuid import uuid4
 
+def uuid_str() -> str:
+    return str(uuid4())
 
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(String, primary_key=True, index=True, default=uuid4)
+    id = Column(String, primary_key=True, index=True, default=uuid_str)
     email = Column(String, unique=True, index=True, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -22,7 +24,7 @@ class User(Base):
 class Chat(Base):
     __tablename__ = 'chats'
     
-    id = Column(String, primary_key=True, index=True, default=uuid4)
+    id = Column(String, primary_key=True, index=True, default=uuid_str)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     title = Column(String(100), nullable=False)
 
@@ -35,7 +37,7 @@ class Chat(Base):
 class Message(Base):
     __tablename__ = 'messages'
 
-    id = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True, default=uuid_str)
     chat_id = Column(String, ForeignKey('chats.id'), nullable=False)
 
     prompt = Column(String, nullable=False)
@@ -51,7 +53,7 @@ class Message(Base):
 class Video(Base):
     __tablename__ = 'videos'
 
-    id = Column(String, primary_key=True, index=True, default=uuid4)
+    id = Column(String, primary_key=True, index=True, default=uuid_str)
     s3_bucket = Column(String, nullable=False)
     s3_key = Column(String, nullable=False)
 

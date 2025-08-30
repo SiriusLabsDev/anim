@@ -2,13 +2,14 @@ import React from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { FaArrowUp } from 'react-icons/fa6'
+import { usePromptStore } from '@/store/usePromptStore';
 
 interface Props {
-    prompt: string;
-    setPrompt: (prompt: string) => void;
     onSubmit: () => void;
 }
-const PromptBox: React.FC<Props> = ({ prompt, setPrompt, onSubmit }) => {
+
+const PromptBox: React.FC<Props> = ({ onSubmit }) => {
+  const { prompt, setPrompt } = usePromptStore()
   return (
     <div className='flex flex-col h-full w-full rounded-xl border-2 bg-[#141415]'>
         <Input 
@@ -17,6 +18,13 @@ const PromptBox: React.FC<Props> = ({ prompt, setPrompt, onSubmit }) => {
         value={prompt}
         onInput={(e) => {
             setPrompt((e.target as HTMLInputElement).value)
+        }}
+        onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                if (prompt !== "") {
+                    onSubmit();
+                }
+            }
         }}
         />
         <div className="flex justify-end my-2 mx-2">

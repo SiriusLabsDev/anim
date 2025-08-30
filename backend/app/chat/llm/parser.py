@@ -1,6 +1,6 @@
 import re
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TypedDict
 from dataclasses import dataclass
 
 @dataclass
@@ -286,6 +286,18 @@ class MarkdownPythonParser:
         
         return info
 
+class SimpleParserOutput(TypedDict):
+    message: str
+    code: str
+    
+def simple_parser(output: str) -> SimpleParserOutput:
+    message = output.split("```")[0].strip()
+    code = output.split("```")[1].strip()
+
+    return SimpleParserOutput(
+        message=message,
+        code=code
+    )
 
 # Example usage and testing
 def main():

@@ -3,3 +3,6 @@ output/
 
 # Env files
 .env
+
+# Mac specific
+.DS_Store

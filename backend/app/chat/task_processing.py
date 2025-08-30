@@ -68,7 +68,8 @@ class RedisTaskManager:
         self.USER_ACTIVE_TASK = "manim:user:{user_id}:active"
         self.QUEUE_KEY = "manim:queue"
         self.STATS_KEY =  "manim:stats"
-        
+        self.VIDEO_KEY = "manim:video:{video_id}"
+
         logger.info(f"Initialized RedisTaskManager on {self.instance_id} with {max_workers} workers")
         
         # Start continuous queue processing
@@ -233,12 +234,6 @@ class RedisTaskManager:
             )
             
             if success:
-                await self.redis.hset(task_key, mapping={
-                    "status": TaskStatus.COMPLETED.value,
-                    "completed_at": time.time(),
-                    "result": path_or_error
-                })
-
                 user_id = task_info["user_id"]
                 chat_id = task_info["chat_id"]
                 message_id = task_info["message_id"]
@@ -255,6 +250,12 @@ class RedisTaskManager:
                 else:
                     logger.error(f"Failed to upload video to S3: {output}")
 
+                await self.redis.hset(task_key, mapping={
+                    "status": TaskStatus.COMPLETED.value,
+                    "completed_at": time.time(),
+                    "result": path_or_error
+                })
+
                 # Delete video from local storage
                 if os.path.exists(path_or_error):
                     os.remove(path_or_error)
@@ -262,7 +263,7 @@ class RedisTaskManager:
                 await self.redis.hset(task_key, mapping={
                     "status": TaskStatus.FAILED.value,
                     "completed_at": time.time(),
-                    "error": output
+                    "error": path_or_error
                 })
 
             logger.info(f"Task {task_id} finished")
@@ -315,6 +316,11 @@ class RedisTaskManager:
         
         except Exception as e:
             return False, str(e)
+
+
+    # ---------------------------------------------------------------------------------
+    # Video methods
+    # ---------------------------------------------------------------------------------
 
     async def upload_video_to_s3(self, file_path: str, s3_bucket: str, s3_region: str, s3_key: str) -> Tuple[bool, str]:
         session = aioboto3.Session(
@@ -374,6 +380,25 @@ class RedisTaskManager:
                 await db.rollback()
                 logger.error(f"Error updating message with video ID: {str(e)}")
 
-    async def _process_queue(self):
-        pass
-    
+    async def get_video_url_aws(self, video_id: str, s3_bucket: str, s3_key: str, expiry: int) -> Optional[str]:
+        # Check cache
+        video_url = await self.redis.get(self.VIDEO_KEY.format(video_id=video_id))
+
+        if video_url: 
+            return video_url
+
+        session = aioboto3.Session(
+            aws_access_key_id=config['AWS_ACCESS_KEY_ID'], 
+            aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY']
+        )
+
+        async with session.client("s3", region_name=config['AWS_BUCKET_REGION']) as s3_client:
+            presigned_url = await s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": s3_bucket, "Key": s3_key},
+                ExpiresIn=expiry if expiry >= 3600 else 3600
+            )
+
+            await self.redis.set(self.VIDEO_KEY.format(video_id=video_id), presigned_url, ex=expiry - 300)
+
+            return presigned_url

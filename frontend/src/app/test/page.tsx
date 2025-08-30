@@ -6,7 +6,7 @@ import { axiosInstance } from '@/lib/api';
 
 const page = () => {
   const onClick = async () => {
-    const response = await axiosInstance.get('/chat/running');
+    const response = await axiosInstance.get('/chat/message/video/61c6c35a-9514-460a-99b5-f212e33c9bb5');
     console.log(response.data);
   }
   return (

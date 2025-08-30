@@ -1,31 +1,44 @@
 "use client"
 
-import { useState  } from "react"
 import { usePromptStore } from "@/store/usePromptStore"
 import { useRouter } from "next/navigation"
 import PromptBox from "@/components/PromptBox"
 
-// type LoadingState = "idle" | "generating-outline" | "generating-video" | "complete"
+import { axiosInstance } from "@/lib/api"
+import useChatStore from "@/store/useChatStore"
+import { useEffect } from "react"
 
-async function getTitle(prompt: string): Promise<string> {
-  console.log(prompt)
-  return "Random title"
+
+async function createAndGetChat(prompt: string): Promise<{ title: string; chatId: string }> {
+  const response = await axiosInstance.post("/chat/create", { prompt });
+  return {
+    'title': response.data.title,
+    'chatId': response.data.id,
+  }
 }
 
 export default function ChatPage() {
-  const [prompt, setPrompt] = useState<string>("");
+  const {prompt, setPrompt} = usePromptStore();
   const router = useRouter();
 
-  const onSubmit = () => {
+  useEffect(() => {
+    const { setTitle, setMessages } = useChatStore.getState();
+    setTitle(undefined);
+    setMessages([]);
+  }, [])
+
+  const onSubmit = async () => {
     try {
       // get title
-      const title = getTitle(prompt);
-      const id = "random-id";
+      const { title, chatId } = await createAndGetChat(prompt);
       const { setLastPrompt, setWaitingForMessage } = usePromptStore.getState();
+      const { setTitle } = useChatStore.getState();
 
       setLastPrompt(prompt);
       setWaitingForMessage(true);
-      router.push(`/chat/${id}`);
+      setTitle(title);
+      
+      router.push(`/chat/${chatId}`);
       setPrompt("");
 
     } catch (error) {
@@ -48,7 +61,7 @@ export default function ChatPage() {
           What{`'`}s on your mind?
         </h2>
         <div className="flex flex-col justify-between min-h-28 w-[40rem]">
-          <PromptBox prompt={prompt} setPrompt={setPrompt} onSubmit={onSubmit}/>
+          <PromptBox onSubmit={onSubmit}/>
         </div>
       </div>
     </div>

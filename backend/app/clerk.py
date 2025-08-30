@@ -29,6 +29,7 @@ def verify(req: Request | WebSocket) -> RequestState:
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db_async)):
     token_data = await verify_user_and_return_user_data(request, db)
+    print("authenticated")
     return token_data
     
 async def get_current_user_ws(ws: WebSocket, db: AsyncSession = Depends(get_db_async)):
