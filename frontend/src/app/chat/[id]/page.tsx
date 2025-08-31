@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { getMessagesById } from "@/lib/api";
 import { useUser } from "@clerk/nextjs";
 import LoadingSkeleton from "./(components)/LoadingSkeleton";
+import { toast } from "sonner";
 
 export default function Page() {
     const params = useParams();
@@ -24,7 +25,13 @@ export default function Page() {
         };
         setMessagesOnPage();
     };
-    const { responseState, loadingChat } = useChat(id, onVideoReceived);
+
+    const onMessageSendError = (errMsg: string) => {
+        console.log("displaying toast 🥃 🥃🥃🥃🥃🥃🥃🥃");
+        toast.error(errMsg);
+    }
+
+    const { responseState, loadingChat } = useChat({chatId: id, onVideoReceived, onMessageSendError});
     const { user } = useUser();
 
     return (

@@ -33,10 +33,10 @@ export default function ChatPage() {
       const { setTitle, setProcessingPrompt } = useChatStore.getState();
       setProcessingPrompt(true);
       const { title, chatId } = await createAndGetChat(prompt);
-      const { setLastPrompt, setWaitingForMessage } = usePromptStore.getState();
+      const { setLastPrompt, setStartGeneration } = usePromptStore.getState();
 
       setLastPrompt(prompt);
-      setWaitingForMessage(true);
+      setStartGeneration(true);
       setTitle(title);
       
       router.push(`/chat/${chatId}`);

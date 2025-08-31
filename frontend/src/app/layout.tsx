@@ -4,6 +4,7 @@ import {
 } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
               </SignedIn>
             </header> */}
           {children}
+          <Toaster position="bottom-right" richColors theme="dark"/>
         </body>
       </html>
     </ClerkProvider>
