@@ -8,15 +8,29 @@ type messageState = "waiting" | "writing" | "coding" | "generating"
 const useChat = (chatId: string, onVideoReceived: () => void) => {
 
     // Initialize chat history
+    const [loadingChat, setLoadingChat] = useState(false);
     const setMessagesOnPage = useCallback(async () => {
-        const messages = await getMessagesById(chatId);
-        useChatStore.getState().setMessages(messages);
-        console.log("messages set");
+        try {
+            setLoadingChat(true);
+            const messages = await getMessagesById(chatId);
+            useChatStore.getState().setMessages(messages);
+            console.log("messages set");
+        } catch (error) {
+            console.error(error);
+        }
+        finally {
+            setLoadingChat(false);
+        }
     }, [chatId]);
 
     const socketRef = useRef<WebSocket | null>(null);
     const writingCodeRef = useRef<boolean>(false);
     const [responseState, setResponseState] = useState<messageState | null>(null);
+
+    const cleanup = () => {
+        useChatStore.getState().setProcessingPrompt(false);
+        setResponseState(null);
+    };
 
     const connectSocket = async () => {
         const ws = new WebSocket(`ws://localhost:8000/api/chat/ws?chat_id=${chatId}`);
@@ -24,7 +38,13 @@ const useChat = (chatId: string, onVideoReceived: () => void) => {
             await new Promise<void>((resolve, reject) => {
                 ws.onopen = () => {
                     console.log('WebSocket connection established')
-                    resolve()
+
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error after connection:', error)
+                        cleanup();
+                    }
+
+                    resolve();
                 }
                 ws.onerror = (error) => {
                     console.error('WebSocket error:', error)
@@ -139,7 +159,6 @@ const useChat = (chatId: string, onVideoReceived: () => void) => {
                     const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: undefined}]
 
                     setMessages(newMessages);
-                    console.log("got here");
                     setLastPrompt(""); // Clear the prompt after sending    
                     await connectSocket(); // connect the socket after updating messages
 
@@ -175,6 +194,7 @@ const useChat = (chatId: string, onVideoReceived: () => void) => {
         sendMessage,
         responseState,
         handleIncomingMessage,
+        loadingChat,
     } as const;
 }
 

@@ -21,8 +21,12 @@ import Link from "next/link";
 import { FaCirclePlus } from "react-icons/fa6";
 
 import { useUser } from "@clerk/nextjs";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
-const History = () => {
+interface Props {
+    fetchingHistory: boolean;
+}
+const History: React.FC<Props> = ({ fetchingHistory }) => {
   const { history } = useHistoryStore();
   const { user } = useUser();
   return (
@@ -55,7 +59,10 @@ const History = () => {
                         <SidebarGroupLabel>Recents</SidebarGroupLabel>
                         <SidebarGroupContent className="w-full">
                             <SidebarMenu className="w-full">
-                            {history.map((item, index) => (
+                            {fetchingHistory && <div className="flex justify-center items-center h-full">
+                                <Spinner size={20} className="mt-8"/>
+                            </div>}
+                            {!fetchingHistory && history.map((item, index) => (
                                 <SidebarMenuItem key={index} className="w-full">
                                     <SidebarMenuButton asChild>
                                         <Link 

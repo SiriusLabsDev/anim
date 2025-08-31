@@ -8,6 +8,8 @@ import useChatStore from "@/store/useChatStore";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getMessagesById } from "@/lib/api";
+import { useUser } from "@clerk/nextjs";
+import LoadingSkeleton from "./(components)/LoadingSkeleton";
 
 export default function Page() {
     const params = useParams();
@@ -22,24 +24,29 @@ export default function Page() {
         };
         setMessagesOnPage();
     };
-    const { responseState } = useChat(id, onVideoReceived);
+    const { responseState, loadingChat } = useChat(id, onVideoReceived);
+    const { user } = useUser();
 
     return (
         <div className="flex justify-center items-center w-full">
             <div className="h-fit justify-between md:min-w-[45rem] max-w-[45rem]">
                 <div className="flex flex-col h-screen overflow-hidden justify-between">
                     <div className="flex-1 mt-8 overflow-y-auto max-h-fit">
-                        {messages.map((message, index) => (
+                        {loadingChat && <LoadingSkeleton />}
+                        {!loadingChat && messages.map((message, index) => (
                             <div key={index} className={`${"text-left"}`}>
                                 <div className="inline-block px-4">
-                                    <div className="bg-[#27282D] w-fit rounded-lg text-white py-2 mb-4 px-4">
+                                    <div className="bg-[#27282D] w-fit rounded-xl text-white py-2 mb-4 pl-2 pr-8">
+                                        <span className="bg-[#dfdfdf] text-[#27282D] font-bold rounded-full w-6 h-6 p-4 inline-flex items-center justify-center mr-2">
+                                            {user?.firstName?.[0]}
+                                        </span>
                                         {message.prompt}
                                     </div>
                                     <div className={index != messages.length - 1 ? "mb-8" : "mb-2"}>
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.response}</ReactMarkdown>
                                     </div>
                                     {message.videoUrl && (
-                                        <div className="mb-4">
+                                        <div className="my-4">
                                             <video controls className="w-full rounded-lg">
                                                 <source src={message.videoUrl} type="video/mp4" />
                                                 Your browser does not support video.

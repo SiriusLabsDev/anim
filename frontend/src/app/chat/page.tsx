@@ -30,9 +30,10 @@ export default function ChatPage() {
   const onSubmit = async () => {
     try {
       // get title
+      const { setTitle, setProcessingPrompt } = useChatStore.getState();
+      setProcessingPrompt(true);
       const { title, chatId } = await createAndGetChat(prompt);
       const { setLastPrompt, setWaitingForMessage } = usePromptStore.getState();
-      const { setTitle } = useChatStore.getState();
 
       setLastPrompt(prompt);
       setWaitingForMessage(true);
