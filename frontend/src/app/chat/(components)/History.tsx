@@ -11,7 +11,7 @@ import {
     SidebarMenuButton, 
     SidebarMenuItem, 
     SidebarProvider, 
-    SidebarTrigger 
+    SidebarTrigger, 
 } from "@/components/ui/sidebar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronUp, User2 } from "lucide-react";
@@ -24,6 +24,8 @@ import { useUser } from "@clerk/nextjs";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams } from "next/navigation";
+import { compressTitle } from "@/lib/utils";
+import SidebarTriggerCustom from "@/components/ui/sidebar-trigger";
 
 interface Props {
     fetchingHistory: boolean;
@@ -37,23 +39,23 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
   const id = params.id as string | undefined;
   
   return (
-    <div>
-        <SidebarProvider className="">
-            <SidebarTrigger/>
+    <div className="relative">
+        <SidebarProvider className="relative">
+            <SidebarTriggerCustom/>
             <Sidebar>
-            <div className="flex gap-2 p-2 items-center text-foreground z-40">
+            <div className="flex gap-2 p-2 items-center text-foreground z-40 bg-[#0A0A0A]">
                 <SidebarTrigger size={"sm"}/>
                 <h3>A N I M</h3>
             </div>
-                <SidebarContent className="my-2">
+                <SidebarContent className="py-2 bg-[#0A0A0A]">
                     <SidebarGroup>
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 <SidebarMenuItem key={"New chat"}>
                                 <SidebarMenuButton asChild>
-                                    <Link href={`/chat`}>
-                                        <FaCirclePlus />
-                                        <span>New chat</span>
+                                    <Link href={`/chat`} className="font-bold w-auto h-fit text-[0.9rem]">
+                                        <FaCirclePlus className="scale-125 mr-1"/>
+                                        <div className="">New chat</div>
                                     </Link>
                                 </SidebarMenuButton>
                                 </SidebarMenuItem>
@@ -87,11 +89,11 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
                                             <SidebarMenuButton asChild>
                                                 <Link 
                                                     href={`/chat/${item.id}`} 
-                                                    className={`w-full p-2 hover:bg-[#111111] rounded-md ${id === item.id ? "bg-[#222222] font-semibold" : ""}`}
+                                                    className={`w-full p-2 text-sm hover:bg-[#111111] rounded-md ${id === item.id ? "bg-[#222222] font-semibold" : ""}`}
                                                 >
                                                     <div
                                                     >
-                                                        {item.title.slice(0, 20)}
+                                                        {compressTitle(item.title, 28)}
                                                     </div>
                                                 </Link>
                                             </SidebarMenuButton>
@@ -106,7 +108,7 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
                 </SidebarContent>
 
                 {/* User footer */}
-                <SidebarFooter>
+                <SidebarFooter className="bg-[#0A0A0A] border-t border-t-[#222222]">
                     <SidebarMenu>
                         <SidebarMenuItem>
                         <DropdownMenu>
