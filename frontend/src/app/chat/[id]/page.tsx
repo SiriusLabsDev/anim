@@ -72,70 +72,72 @@ export default function Page() {
     );
 
     return (
-        <div className="flex justify-center items-center w-full">
-            <div className="h-fit justify-between md:min-w-[47rem] max-w-[47rem]">
-                <div className="flex flex-col h-screen overflow-hidden justify-between">
-                    <div className="flex-1 mt-8 overflow-y-auto max-h-fit">
-                        {loadingChat && <LoadingSkeleton />}
-                        <AnimatePresence initial={false}>
-                            {!loadingChat && messages.map((message, index) => (
-                                <div key={index} className={`${"text-left"}`}>
-                                    <div className="inline-block px-4">
-                                        <div className="flex bg-[#27282D] w-fit rounded-xl text-white py-2 mb-4 pl-2 pr-8">
-                                            <div className="bg-[#dfdfdf] text-[#27282D] font-bold rounded-full w-6 h-6 p-4 inline-flex items-center justify-center mr-2">
-                                                {user?.firstName?.[0]}
-                                            </div>
-                                            <motion.div 
-                                                className="self-center"
-                                                layout
-                                                initial={{ opacity: 0, y: 20 }}  // ⬅️ ignored on first render
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.3 }}
-                                            >
-                                                {message.prompt}
-                                            </motion.div>
-                                        </div>
-                                        {/* Output */}
-                                        <div className={`${index === messages.length -1 ? 'min-h-[72vh] mb-2' : 'mb-8'}`}>
-                                            {/* Response */}
-                                            <div className={`mb-4 tracking-wide px-2`}>
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.response}</ReactMarkdown>
-                                            </div>
-                                            {index === messages.length -1 && 
-                                                <div className="px-2">
-                                                    <AnimatePresence>
-                                                        {responseState === "waiting" && 
-                                                            <AiWorkingAnimation text="Thinking" />
-                                                        }
-                                                        {responseState === "coding" && 
-                                                            <AiWorkingAnimation text="Writing video script" />
-                                                        }
-                                                        {responseState === "generating" && 
-                                                            <AiWorkingAnimation text="Generating video" />
-                                                        }
-                                                    </AnimatePresence>
+        <div className="w-full relative">
+            <div className="flex justify-center items-center overflow-y-auto w-full">
+                <div className="h-fit justify-between md:min-w-[min(95%,47rem)] md:max-w-[47rem]">
+                    <div className="flex flex-col h-screen justify-between w-full">
+                        <div className="flex-1 mt-8 max-h-fit ">
+                            {loadingChat && <LoadingSkeleton />}
+                            <AnimatePresence initial={false}>
+                                {!loadingChat && messages.map((message, index) => (
+                                    <div key={index} className={`${"text-left"}`}>
+                                        <div className="inline-block px-4">
+                                            <div className="flex bg-[#27282D] w-fit rounded-xl text-white py-2 mb-4 pl-2 pr-8">
+                                                <div className="bg-[#dfdfdf] text-[#27282D] font-bold rounded-full w-6 h-6 p-4 inline-flex items-center justify-center mr-2">
+                                                    {user?.firstName?.[0]}
                                                 </div>
-                                            }
-                                            {/* Video */}
-                                            {message.videoUrl && (
-                                                <div className="mt-4 mb-auto">
-                                                    <video controls className="w-full rounded-lg">
-                                                        <source src={message.videoUrl} type="video/mp4" />
-                                                        Your browser does not support video.
-                                                    </video>
+                                                <motion.div 
+                                                    className="self-center"
+                                                    layout
+                                                    initial={{ opacity: 0, y: 20 }}  // ⬅️ ignored on first render
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    {message.prompt}
+                                                </motion.div>
+                                            </div>
+                                            {/* Output */}
+                                            <div className={`${index === messages.length -1 ? 'min-h-[72vh] mb-2' : 'mb-8'}`}>
+                                                {/* Response */}
+                                                <div className={`mb-4 tracking-wide px-2`}>
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.response}</ReactMarkdown>
                                                 </div>
-                                            )}
+                                                {index === messages.length -1 && 
+                                                    <div className="px-2">
+                                                        <AnimatePresence>
+                                                            {responseState === "waiting" && 
+                                                                <AiWorkingAnimation text="Thinking" />
+                                                            }
+                                                            {responseState === "coding" && 
+                                                                <AiWorkingAnimation text="Writing video script" />
+                                                            }
+                                                            {responseState === "generating" && 
+                                                                <AiWorkingAnimation text="Generating video" />
+                                                            }
+                                                        </AnimatePresence>
+                                                    </div>
+                                                }
+                                                {/* Video */}
+                                                {message.videoUrl && (
+                                                    <div className="mt-4 mb-auto">
+                                                        <video controls className="max-w-full rounded-lg">
+                                                            <source src={message.videoUrl} type="video/mp4" />
+                                                            Your browser does not support video.
+                                                        </video>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </AnimatePresence>
-                        
-                        <div ref={divRef} id="scroller-div"></div>
+                                ))}
+                            </AnimatePresence>
+                            
+                            <div ref={divRef} id="scroller-div"></div>
+                        </div>
+                        <div className="sticky bottom-0 bg-[#0F0F10] pb-2 w-[min(98%,48rem)] mx-auto">
+                            <PromptBox onSubmit={onSubmit} />
+                        </div> 
                     </div>
-                    <div className="mb-8">
-                        <PromptBox onSubmit={onSubmit} />
-                    </div> 
                 </div>
             </div>
         </div>

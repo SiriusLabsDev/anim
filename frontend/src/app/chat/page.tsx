@@ -65,11 +65,11 @@ export default function ChatPage() {
           backgroundSize: '24px 24px'
         }}
       /> */}
-      <div className="flex flex-col gap-6 z-30">
-        <h2 className="text-[3rem] font-bold text-center">
+      <div className="flex flex-col gap-6 z-30 w-full">
+        <h2 className="text-[2rem] sm:text-[2rem] md:text-[3rem] font-bold text-center">
           What{`'`}s on your mind?
         </h2>
-        <div className="flex flex-col justify-between min-h-28 w-[40rem]">
+        <div className="flex flex-col justify-between md:min-h-28 w-[min(90%,40rem)] lg:w-[40rem] mx-auto">
           <PromptBox onSubmit={onSubmit} mainPage={true} />
         </div>
       </div>
