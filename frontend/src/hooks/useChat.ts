@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { getMessagesById, getStatus } from '@/lib/api';
 import useChatStore from '@/store/useChatStore';
 import { usePromptStore } from '@/store/usePromptStore';
@@ -10,14 +10,17 @@ interface ChatOptions {
     chatId: string;
     onVideoReceived: () => void;
     onMessageSendError: (errMsg: string) => void;
+    onGenerationError: (errMsg: string) => void;
+    divRef: RefObject<HTMLDivElement | null>; // Reference to the div to scroll into view
 }
-const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) => {
+const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationError, divRef }: ChatOptions) => {
 
     const [loadingChat, setLoadingChat] = useState(false);
     const [responseState, setResponseState] = useState<messageState | null>(null);
     const cleanup = () => {
         useChatStore.getState().setProcessingPrompt(false);
         setResponseState(null);
+        writingCodeRef.current = false;
     };
 
     const { connectSocket, socketRef, setOnMessage } = useWebSocket({ chatId, cleanup });
@@ -25,6 +28,7 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) =
     // Chat History
     const setMessagesOnPage = useCallback(async () => {
         try {
+            console.log("setting messages")
             setLoadingChat(true);
             const messages = await getMessagesById(chatId);
             useChatStore.getState().setMessages(messages);
@@ -38,10 +42,21 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) =
 
     const writingCodeRef = useRef<boolean>(false);
 
-    const sendMessage = (message: string) => {
-        if (socketRef.current) {
-            socketRef.current.send(message);
+    const sendMessagePrompt = (prompt: string) => {
+        if (responseState !== null) return;
+
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(prompt);
             setResponseState("waiting");
+            socketRef.current.onerror = () => {
+                cleanup();
+                onGenerationError("An error occurred.");
+            }
+            socketRef.current.onclose = () => {
+                if(responseState && ["waiting", "writing", "coding"].includes(responseState)) {
+                    cleanup();
+                }
+            }
         } else {
             console.error('WebSocket is not connected');
             setResponseState(null);
@@ -59,35 +74,44 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) =
             setResponseState("coding");
         }
         else if (message === "<done/>") {
-            setResponseState("generating");
+            setResponseState(null);
             return;
         }
-        else if (message == "<queued/>") {
+        else if (message === "<failed/>") {
+            cleanup();
+            onGenerationError("Video generation failed");
+        }
+        else if (message === "<queued/>") {
             // poll for status updates
+            setResponseState("generating");
             let intervalId: NodeJS.Timeout | undefined = undefined;
 
             intervalId = setInterval(async () => {
                 const statusInfo = await getStatus();
                 if (!statusInfo || statusInfo.status === "completed") {
-                    setResponseState(null);
                     clearInterval(intervalId);
+                    cleanup();
 
                     onVideoReceived();
                 }
+                else if(statusInfo.status === "failed") {
+                    cleanup();
+                    onGenerationError("Video generation failed");
+                }
             }, 3 * 1000);
-        }
-        
-        if (writingCodeRef.current) {
             return;
         }
 
-        if (message.includes("```python") || message.includes("```py")) {
-            writingCodeRef.current = true;
-            if (message.includes("```py")) {
-                message = message.split("```py")[0];
-            } else {
-                message = message.split("```python")[0];
+        if (writingCodeRef.current) {
+            if(message.includes("```")) {
+                writingCodeRef.current = false;
             }
+            return;
+        }
+
+        if (message.includes("```")) {
+            writingCodeRef.current = true;
+            message = message.split("```")[0];
         }
 
         const prevMessages = useChatStore.getState().messages;
@@ -105,46 +129,62 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) =
         useChatStore.getState().setMessages(
             newMessages
         );
-    }, [responseState, onVideoReceived]);
-
+    }, [responseState, onVideoReceived, onGenerationError]);
 
     const { startGeneration } = usePromptStore();
+
+    useEffect(() => {
+        if (!startGeneration) {
+            // Handle the case where generation has started
+            console.log("startGeneration: ", startGeneration);
+            setMessagesOnPage();
+        }
+    }, []);
+
     useEffect(() => {
         const handleChatGeneration = async () => {
-            if (startGeneration) {
+            if (!startGeneration) return;
+
+            console.log("here", startGeneration);
+            try {
                 usePromptStore.getState().setStartGeneration(false);
-                try {
-                    throw new Error("Testing");
-                    const { lastPrompt, setLastPrompt } = usePromptStore.getState();
-                    if (lastPrompt.trim() === "") return;
+                const { lastPrompt, setLastPrompt } = usePromptStore.getState();
+                if (lastPrompt.trim() === "") return;
 
-                    const {setMessages, messages: prevMessages} = useChatStore.getState();
-                    const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: undefined}];
+                const {setMessages, messages: prevMessages} = useChatStore.getState();
+                // const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: undefined}];
+                const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: ""}];
 
-                    setMessages(newMessages);
-                    setLastPrompt("");     
+                setMessages(newMessages);
+                setLastPrompt("");     
 
-                    await connectSocket(); 
+                console.log(divRef.current);
 
-                    setMessages([
-                        ...newMessages.slice(0, newMessages.length-1),
-                        {...newMessages[newMessages.length - 1], response: ""}
-                    ]);
+                setTimeout(() => {
+                    divRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
 
-                    sendMessage(lastPrompt);
+                await connectSocket(); 
 
-                    setOnMessage((message: string) => {
-                        handleIncomingMessage(message);
-                    });
-                } catch (error) {
-                    console.error(error);
+                // setMessages([
+                //     ...newMessages.slice(0, newMessages.length-1),
+                //     {...newMessages[newMessages.length - 1], response: ""}
+                // ]);
 
-                    cleanup();
-                    onMessageSendError("Failed to send message. Please try again."); // TODO: add from `error.message`
-                }
+                sendMessagePrompt(lastPrompt);
 
-                // TODO: scroll to the bottom of the chat
+                setOnMessage((message: string) => {
+                    handleIncomingMessage(message);
+                });
+
+            } catch (error) {
+                console.error(error);
+
+                cleanup();
+                onMessageSendError("Failed to send message. Please try again."); // TODO: add from `error.message`
             }
+
+            // TODO: scroll to the bottom of the chat
         }
 
         handleChatGeneration();
@@ -153,17 +193,14 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError }: ChatOptions) =
     }, [startGeneration]);
 
     useEffect(() => {
-        const { startGeneration } = usePromptStore.getState();
-        if (!startGeneration) {
-            // Handle the case where generation has started
-            setMessagesOnPage();
-        }
-    }, [setMessagesOnPage]);
+        useChatStore.getState().setProcessingPrompt(responseState !== null);
+    }, [responseState])
+
 
     return {
         connectSocket,
         setOnMessage,
-        sendMessage,
+        sendMessagePrompt,
         responseState,
         handleIncomingMessage,
         loadingChat,

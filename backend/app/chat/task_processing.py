@@ -301,7 +301,7 @@ class RedisTaskManager:
                     timeout=60 * 20      # 20 minutes
                 )
 
-                if process.returncode == 0 and (path_ := self.get_video_file(f"{output_dir}/media/videos/1080p60")):
+                if process.returncode == 0 and (path_ := self.get_video_file(f"{output_dir}/media/videos")):
                     return True, path_.as_posix()
 
                 else:
@@ -341,8 +341,13 @@ class RedisTaskManager:
         video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v'}
         
         directory_path = Path(directory)
+
+        result = list(directory_path.rglob("partial_movie_files"))
         
-        for file_path in directory_path.iterdir():
+        if len(result) == 0:
+            return None
+        
+        for file_path in result[0].parent.iterdir():
             if file_path.is_file() and file_path.suffix.lower() in video_extensions:
                 return file_path
     

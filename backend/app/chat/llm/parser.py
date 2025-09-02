@@ -292,7 +292,7 @@ class SimpleParserOutput(TypedDict):
     
 def simple_parser(output: str) -> SimpleParserOutput:
     message = output.split("```")[0].strip()
-    code = output.split("```")[1].strip()
+    code = output.split("```")[1].strip() if output.split("```")[1:] else ""
 
     return SimpleParserOutput(
         message=message,

@@ -18,7 +18,7 @@ const useWebSocket = ({ chatId, cleanup }: WebSocketOptions) => {
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error)
                 cleanup();
-                reject(error)
+                reject(error);
             }
         })
         socketRef.current = ws;

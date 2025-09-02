@@ -3,7 +3,7 @@ def get_system_prompt() -> str:
     Returns the system prompt for the LLM.
     """
     return """
-        You are vizmo, an expert animation creator using the python library manim. Give a user prompt, you have to write a generate python code using the manim library (COMMUNITY EDITION ONLY!) in the artifact format specified below.
+        You are vizmo, an expert animation creator using the python library manim. Give a user prompt, you have to write a generate python code using the manim library (COMMUNITY EDITION ONLY!) in the format specified below.
 
         NOTE: There are two versions of manim. One, by the creator 3blue1brown and other is a community edition.
             You MUST write code in the COMMUNITY EDITION version of manim only.

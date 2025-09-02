@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException, status, Depends, WebSocket, Query
 from fastapi.responses import FileResponse
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 import logging
 from pathlib import Path
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from app.chat.llm import model, parser, scripting_model
 from app.chat.llm.parser import simple_parser
@@ -154,17 +155,27 @@ async def chat_ws(
     if not await task_manager.can_user_submit_task(user_id=current_user.user_id):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="User already has an active task")
 
-    result = await db.execute(select(Chat).where(Chat.id == chat_id, Chat.user_id == current_user.user_id))
+    result = await db.execute(
+        select(Chat)
+        .options(selectinload(Chat.messages))
+        .where(Chat.id == chat_id, Chat.user_id == current_user.user_id)
+    )
     chat = result.scalar_one_or_none()
 
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    await ws.accept()
+    prev_messages = chat.messages
 
+    await ws.accept()
     output = ""
 
     try:
+        history = []
+        for message in prev_messages:
+            history.append(HumanMessage(message.prompt))
+            history.append(AIMessage(message.response if message.response else ""))
+
         data = await ws.receive_text()
 
         # Add message to database
@@ -173,11 +184,10 @@ async def chat_ws(
         await db.commit()
         await db.refresh(db_message)
 
+
         # Generation
-        messages = [
-            SystemMessage(get_system_prompt()),
-            HumanMessage(data)
-        ]
+        messages = [SystemMessage(get_system_prompt())] + history[-6:] + [HumanMessage(data)]
+
         async for chunk in model.astream(messages):
             await ws.send_text(chunk.content)
             print(chunk.content)
@@ -192,10 +202,6 @@ async def chat_ws(
         await ws.send_text("<done/>")
     
         manim_code = parser.parse_and_return_code(output)
-
-        if not manim_code:
-            await ws.send_text("<failed/>")
-            raise Exception("Video generation failed")
 
         # Submit task for video generation
         await task_manager.submit_task(

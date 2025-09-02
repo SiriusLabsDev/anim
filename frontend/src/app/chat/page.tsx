@@ -7,6 +7,7 @@ import PromptBox from "@/components/PromptBox"
 import { axiosInstance } from "@/lib/api"
 import useChatStore from "@/store/useChatStore"
 import { useEffect } from "react"
+import { useHistoryStore } from "@/store/useHistoryStore"
 
 
 async function createAndGetChat(prompt: string): Promise<{ title: string; chatId: string }> {
@@ -41,6 +42,9 @@ export default function ChatPage() {
       
       router.push(`/chat/${chatId}`);
       setPrompt("");
+
+      const { history: prevHistory, setHistory } = useHistoryStore.getState();
+      setHistory([{ id: chatId, title }, ...prevHistory]);
 
     } catch (error) {
       console.error("Error submitting prompt:", error);  

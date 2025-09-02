@@ -22,13 +22,20 @@ import { FaCirclePlus } from "react-icons/fa6";
 
 import { useUser } from "@clerk/nextjs";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { AnimatePresence, motion } from "motion/react";
+import { useParams } from "next/navigation";
 
 interface Props {
     fetchingHistory: boolean;
 }
+
 const History: React.FC<Props> = ({ fetchingHistory }) => {
   const { history } = useHistoryStore();
   const { user } = useUser();
+  const params = useParams();
+
+  const id = params.id as string | undefined;
+  
   return (
     <div>
         <SidebarProvider className="">
@@ -62,18 +69,37 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
                             {fetchingHistory && <div className="flex justify-center items-center h-full">
                                 <Spinner size={20} className="mt-8"/>
                             </div>}
-                            {!fetchingHistory && history.map((item, index) => (
-                                <SidebarMenuItem key={index} className="w-full">
-                                    <SidebarMenuButton asChild>
-                                        <Link 
-                                            key={item.id} href={`/chat/${item.id}`} 
-                                            className="w-full p-2 hover:bg-[#111111]"
-                                        >
-                                            {item.title.slice(0, 20)}
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            <AnimatePresence mode="popLayout">
+                                {!fetchingHistory && history.map((item) => (
+                                    <motion.div 
+                                        key={item.id}
+                                        layout // This enables layout animations for position changes
+                                        initial={{ opacity: 0, y: -20 }} 
+                                        animate={{ opacity: 1, y: 0 }} 
+                                        exit={{ opacity: 0, x: -100 }}
+                                        transition={{
+                                            layout: { duration: 0.3, ease: "easeOut" }, // Layout transition
+                                            opacity: { duration: 0.2 },
+                                            y: { duration: 0.3, ease: "easeOut" }
+                                        }}
+                                    >
+                                        <SidebarMenuItem className="w-full">
+                                            <SidebarMenuButton asChild>
+                                                <Link 
+                                                    href={`/chat/${item.id}`} 
+                                                    className={`w-full p-2 hover:bg-[#111111] rounded-md ${id === item.id ? "bg-[#222222] font-semibold" : ""}`}
+                                                >
+                                                    <div
+                                                    >
+                                                        {item.title.slice(0, 20)}
+                                                    </div>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                            
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>
