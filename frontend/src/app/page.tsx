@@ -46,7 +46,7 @@ export default function Home() {
       
       {/* Fixed navbar with backdrop blur */}
       <div className='fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-4xl'>
-        <div className='bg-black/30 backdrop-blur-md border border-white/20 rounded-lg'>
+        <div className='bg-black/30 backdrop-blur-md border border-white/20 rounded-full'>
           <Navbar/> 
         </div>
       </div>

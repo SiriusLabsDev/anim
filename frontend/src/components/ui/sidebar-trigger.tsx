@@ -3,10 +3,10 @@ import { SidebarTrigger, useSidebar } from './sidebar';
 import { AnimatePresence, motion } from 'motion/react';
 
 const SidebarTriggerCustom = () => {
-  const { isMobile } = useSidebar();
+  const { isMobile, open } = useSidebar();
   return (
     <AnimatePresence>
-      {(!useSidebar().open || isMobile) && 
+      {(!open || isMobile) && 
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -15,6 +15,7 @@ const SidebarTriggerCustom = () => {
             ease: "easeInOut",
             duration: 0.5,
         }}
+        className='z-50'
       >
         <SidebarTrigger size={"default"} className="absolute top-2 left-0 z-50"/>
       </motion.div>}

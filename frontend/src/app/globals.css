@@ -137,3 +137,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Clerk */
+img.cl-avatarImage {
+  filter: grayscale(100%) sepia(100%) hue-rotate(150deg) saturate(2) brightness(0.8) !important;
+}
+
+
+span.cl-userPreview {
+  filter: grayscale(100%) sepia(100%) hue-rotate(150deg) saturate(2) brightness(0.8) !important;
+}

@@ -19,7 +19,7 @@ import { useHistoryStore } from "@/store/useHistoryStore"
 import Link from "next/link";
 import { FaCirclePlus } from "react-icons/fa6";
 
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams } from "next/navigation";
@@ -35,12 +35,14 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
     const params = useParams();
 
     const id = params.id as string | undefined;
+    
+    const { signOut } = useAuth();
 
     return (
         <Sidebar>
-            <div className="flex gap-2 p-2 items-center text-foreground z-40 bg-[#0A0A0A]">
+            <div className="flex gap-2 px-2 py-4 items-center text-foreground z-40 bg-[#0A0A0A]">
                 <SidebarTrigger size={"sm"} />
-                <h3>A N I M</h3>
+                <h3 className="font-bold">Anim </h3>
             </div>
             <SidebarContent className="py-2 bg-[#0A0A0A]">
                 <SidebarGroup>
@@ -124,7 +126,7 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
                                     <span>Billing</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
-                                    <span>Sign out</span>
+                                    <span onClick={() => signOut()}>Sign out</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

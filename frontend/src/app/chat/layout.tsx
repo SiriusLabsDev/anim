@@ -4,14 +4,23 @@ import React, { useEffect, useState } from "react";
 import History from "./(components)/History";
 import { getHistory } from "@/lib/api";
 import { useHistoryStore } from "@/store/useHistoryStore";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import SidebarTriggerCustom from "@/components/ui/sidebar-trigger";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { Loader2 } from "lucide-react";
 
 export default function Layout({children}: {children: React.ReactNode}) {
   const [fetchingHistory, setFetchingHistory] = useState(false);
+  const { user, isSignedIn } = useUser();
+
+  const { isLoaded } = useAuth();
+  
+  const router = useRouter();
+
 
   useEffect(() => {
+    if(!user) return;
     const fetchHistory = async () => {
       try {
         setFetchingHistory(true);
@@ -26,11 +35,25 @@ export default function Layout({children}: {children: React.ReactNode}) {
       }
     };
     fetchHistory();
-  }, [])
+  }, [user]);
+
   const params = useParams();
   const id = params.id as string | undefined;
+
+  useEffect(() => {
+    if(isLoaded && !isSignedIn) {
+      router.replace("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router])
+
+
   return (
-    <SidebarProvider>
+    !isLoaded ? (
+      <div className="absolute inset-0 flex items-center justify-center bg-black">
+        <Loader2 className="animate-spin" />
+      </div>
+    ) : 
+    isSignedIn && <SidebarProvider>
         {!id && <div 
           className="absolute inset-0 opacity-60 z-10 bg-[#080808]"
           style={{
