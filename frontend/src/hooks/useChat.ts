@@ -139,6 +139,11 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
             console.log("startGeneration: ", startGeneration);
             setMessagesOnPage();
         }
+
+        return () => {
+            useChatStore.getState().setMessages([]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

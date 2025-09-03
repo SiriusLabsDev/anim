@@ -147,3 +147,24 @@ img.cl-avatarImage {
 span.cl-userPreview {
   filter: grayscale(100%) sepia(100%) hue-rotate(150deg) saturate(2) brightness(0.8) !important;
 }
+
+@layer utilities {
+  .scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    border-radius: 100vh;
+    background: #00000000;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #7A7A81;
+    border-radius: 100vh;
+  }
+
+  /* .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #212121;
+  } */
+}

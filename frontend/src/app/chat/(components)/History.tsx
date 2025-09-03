@@ -7,10 +7,12 @@ import {
     SidebarGroup,
     SidebarGroupContent,
     SidebarGroupLabel,
+    SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarTrigger,
+    useSidebar,
 } from "@/components/ui/sidebar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronUp, User2 } from "lucide-react";
@@ -24,6 +26,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams } from "next/navigation";
 import { compressTitle } from "@/lib/utils";
+import { useRef } from "react";
 
 interface Props {
     fetchingHistory: boolean;
@@ -37,66 +40,79 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
     const id = params.id as string | undefined;
     
     const { signOut } = useAuth();
+    const { isMobile } = useSidebar();
+
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     return (
         <Sidebar>
-            <div className="flex gap-2 px-2 py-4 items-center text-foreground z-40 bg-[#0A0A0A]">
-                <SidebarTrigger size={"sm"} />
-                <h3 className="font-bold">Anim </h3>
-            </div>
-            <SidebarContent className="py-2 bg-[#0A0A0A]">
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            <SidebarMenuItem key={"New chat"}>
-                                <SidebarMenuButton asChild>
-                                    <Link href={`/chat`} className="font-bold w-auto h-fit text-[0.9rem]">
-                                        <FaCirclePlus className="scale-125 mr-1" />
-                                        <div className="">New chat</div>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+        
+            <SidebarHeader className="bg-[#0A0A0A] ">
+                <SidebarMenu>
+                    <SidebarMenuItem key={"Logo"}>
+                        <div className="flex gap-2 py-4 items-center text-foreground z-40">
+                            <SidebarTrigger size={"sm"} ref={triggerRef} />
+                            <h3 className="font-bold">Anim </h3>
+                        </div>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem key={"New chat"}>
+                        <SidebarMenuButton asChild>
+                            <Link href={`/chat`} className="font-bold w-auto h-fit text-[0.9rem]">
+                                <FaCirclePlus className="scale-125 mr-1" />
+                                <div className="">New chat</div>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
+            <SidebarContent className="bg-[#0A0A0A] scrollbar">
+                
 
                 {/* Recent chats */}
                 <SidebarGroup className="w-full">
                     <SidebarGroupLabel>Recents</SidebarGroupLabel>
                     <SidebarGroupContent className="w-full">
-                        <SidebarMenu className="w-full">
+                        <SidebarMenu className="w-full h-full ">    
                             {fetchingHistory && <div className="flex justify-center items-center h-full">
                                 <Spinner size={20} className="mt-8" />
                             </div>}
                             <AnimatePresence mode="popLayout">
-                                {!fetchingHistory && history.map((item) => (
-                                    <motion.div
-                                        key={item.id}
-                                        layout // This enables layout animations for position changes
-                                        initial={{ opacity: 0, y: -20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, x: -100 }}
-                                        transition={{
-                                            layout: { duration: 0.3, ease: "easeOut" }, // Layout transition
-                                            opacity: { duration: 0.2 },
-                                            y: { duration: 0.3, ease: "easeOut" }
-                                        }}
-                                    >
-                                        <SidebarMenuItem className="w-full">
-                                            <SidebarMenuButton asChild>
-                                                <Link
-                                                    href={`/chat/${item.id}`}
-                                                    className={`w-full p-2 text-sm hover:bg-[#111111] rounded-md ${id === item.id ? "bg-[#222222] font-semibold" : ""}`}
-                                                >
-                                                    <div
+                                <div className="">
+                                    {!fetchingHistory && history.map((item) => (
+                                        <motion.div
+                                            key={item.id}
+                                            layout // This enables layout animations for position changes
+                                            initial={{ opacity: 0, y: -20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, x: -100 }}
+                                            transition={{
+                                                layout: { duration: 0.3, ease: "easeOut" }, // Layout transition
+                                                opacity: { duration: 0.2 },
+                                                y: { duration: 0.3, ease: "easeOut" }
+                                            }}
+                                        >
+                                            <SidebarMenuItem className="w-full">
+                                                <SidebarMenuButton asChild>
+                                                    <Link
+                                                        href={`/chat/${item.id}`}
+                                                        className={`w-full p-2 text-sm hover:bg-[#111111] rounded-md ${id === item.id ? "bg-[#222222] font-semibold" : ""}`}
+                                                        onClick={() => {
+                                                            if(isMobile) {
+                                                                triggerRef.current?.click();
+                                                            }
+                                                        }}
                                                     >
-                                                        {compressTitle(item.title, 28)}
-                                                    </div>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    </motion.div>
-                                ))}
+                                                        <div
+                                                        >
+                                                            {compressTitle(item.title, 28)}
+                                                        </div>
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                                
                             </AnimatePresence>
 
                         </SidebarMenu>

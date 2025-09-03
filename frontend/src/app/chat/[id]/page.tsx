@@ -73,9 +73,13 @@ export default function Page() {
 
     return (
         <div className="w-full relative">
-            <div className="flex justify-center items-center overflow-y-auto w-full">
+            {/* Larger div to have scrollbar at the very sides */}
+            <div className="flex justify-center items-center scrollbar overflow-y-auto w-full">
+                {/* Width constrained diff for messages and prompt box */}
                 <div className="h-fit justify-between md:min-w-[min(95%,47rem)] md:max-w-[47rem]">
+                    {/* Flex box (col) for messages and prompt box */}
                     <div className="flex flex-col h-screen justify-between w-full">
+                        {/* Messages */}
                         <div className="flex-1 mt-8 max-h-fit ">
                             {loadingChat && <LoadingSkeleton />}
                             <AnimatePresence initial={false}>
@@ -134,6 +138,7 @@ export default function Page() {
                             
                             <div ref={divRef} id="scroller-div"></div>
                         </div>
+                        {/* Prompt box */}
                         <div className="sticky bottom-0 bg-[#0F0F10] pb-2 w-[min(98%,48rem)] mx-auto">
                             <PromptBox onSubmit={onSubmit} />
                         </div> 
