@@ -8,6 +8,9 @@ const Logo = () => {
       alt="Logo"
       width={30}
       height={30}
+      style={{
+        filter: 'grayscale(50%)'
+      }}
     />
   )
 }

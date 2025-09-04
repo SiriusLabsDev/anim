@@ -168,3 +168,24 @@ span.cl-userPreview {
     background: #212121;
   } */
 }
+
+.plyr {
+  border-radius: 10px; /* Adjust the value as desired */
+}
+div.plyr__poster {
+    border-radius: 15px; /* Adjust the value as desired */
+}
+
+button.plyr__control:hover {
+  background-color: transparent !important;
+}
+button[data-plyr='play'].plyr__control {
+  background-color: transparent !important;
+}
+button[data-plyr='play'].plyr__controls__item {
+  background-color: transparent;
+}
+/* [id~='plyr-volume'] */
+input[data-plyr='volume'], input[data-plyr='seek'] {
+  color: white !important;
+}

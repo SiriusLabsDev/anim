@@ -140,9 +140,6 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
             setMessagesOnPage();
         }
 
-        return () => {
-            useChatStore.getState().setMessages([]);
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
