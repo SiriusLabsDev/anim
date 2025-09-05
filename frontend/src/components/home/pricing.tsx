@@ -1,16 +1,18 @@
-import React from 'react'
+"use client"
 import { Card, CardHeader, CardContent, CardFooter, CardDescription, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { FaArrowRightLong } from 'react-icons/fa6';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import { buttonVariants } from '../ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Check, CheckCircleIcon } from 'lucide-react';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Check } from 'lucide-react';
 import AnimationContainer from '../ui/animation-container';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 
 const Pricing = () => {
+    const { isSignedIn } = useAuth()
+    const router = useRouter();
     const plans = [{
         name: "Free",
         info: "Free for beta users.",
@@ -25,7 +27,7 @@ const Pricing = () => {
         ],
         btn: {
             text: "Get Started",
-            href: "/chat",
+            href: isSignedIn ? "/chat" : "/sign-in",
         },
     },{
         name: "Pro",
@@ -40,7 +42,7 @@ const Pricing = () => {
             { text: "Conversation history" },
         ],
         btn: {
-            text: "Get Started",
+            text: "Continue with Pro",
             href: "/chat",
         },
     }]
@@ -59,8 +61,9 @@ const Pricing = () => {
                 <Card
                     key={plan.name}
                     className={cn(
-                        "flex w-full flex-col rounded-xl border-border",
-                        "bg-[#0a0a0ac0]"
+                        "relative flex w-full flex-col rounded-xl border-border",
+                        "bg-[#0a0a0ac0]",
+                        // "bg-black"
                     )}
                 >
                     <CardHeader
@@ -107,6 +110,7 @@ const Pricing = () => {
                         <Button
                             onClick={() => {
                                 // Handle button click
+                                router.push(plan.btn.href)
                             }}
                             style={{ width: "100%" }}
                             className={buttonVariants({

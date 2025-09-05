@@ -17,7 +17,7 @@ const SidebarTriggerCustom = () => {
         }}
         className='z-50'
       >
-        <SidebarTrigger size={"default"} className="absolute top-2 left-0 z-50"/>
+        <SidebarTrigger size={"default"} className="absolute mt-4 top-2 left-0 z-50"/>
       </motion.div>}
     </AnimatePresence>
   )

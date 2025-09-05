@@ -11,6 +11,8 @@ import About from "@/components/home/about";
 import Footer from "@/components/home/footer";
 import { cn } from "@/lib/utils";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
+import HowTo from "@/components/home/how-to";
+import Me from "@/components/home/me";
 
 const Plyr = dynamic(() => import("plyr-react"), { ssr: false });
 
@@ -96,20 +98,15 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Pricing */}
-          <div id="pricing" className="w-full flex flex-col items-center my-8">
-              <div className="space-y-8 w-[min(80%,50rem)] items-center">
-                <Pricing /> 
-              </div>
+          <div className="w-2/3 mx-auto my-12">
+              <HowTo />
           </div>
-          {/* <div className="w-full flex justify-center">
-                <div className="w-[min(80%,50rem)]">
-                  <About />
-                </div>
-          </div> */}
 
-          {/* empty space */}
-          {/* <div className="h-28"/> */}
+          <div className="w-[min(90%,63rem)] mx-auto my-16">
+              <Me />
+          </div>
+
+          {/* Pricing */}
 
         </motion.div>
       </div>

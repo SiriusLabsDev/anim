@@ -20,10 +20,10 @@ const Navbar = () => {
   const [hovered, setHovered] = useState<Number | null>(null);
   return (
     <div className='h-16 w-full flex items-center justify-between px-6'>
-      <div className='flex gap-4 text-white font-semibold text-lg'>
+      <Link href='/' className='flex gap-4 text-white font-semibold text-lg'>
         <Logo />
         A N I M
-      </div>
+      </Link>
         <div 
           className='hidden sm:flex gap-4 items-center'
           onMouseLeave={() => setHovered(null)}
