@@ -11,7 +11,7 @@ from clerk_backend_api import Clerk
 from clerk_backend_api.security.types import AuthenticateRequestOptions, RequestState
 
 from app.database.core import get_db_async
-from app.database.models import User
+from app.database.models import User, Credits
 
 
 def verify(req: Request | WebSocket) -> RequestState:
@@ -70,7 +70,11 @@ async def verify_user_and_return_user_data(req: Request | WebSocket, db: AsyncSe
                 )
                 
         user = User(id=user_id, email=email)
+        credits = Credits(user_id=user_id, amount=500)
+
         db.add(user)
+        db.add(credits)
+
         await db.commit()
         await db.refresh(user)
 

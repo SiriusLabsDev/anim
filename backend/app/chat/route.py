@@ -1,11 +1,8 @@
 from fastapi import APIRouter, Body, HTTPException, status, Depends, WebSocket, Query
-from fastapi.responses import FileResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 import logging
 from pathlib import Path
 from pydantic import BaseModel
-import subprocess
-import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -17,7 +14,7 @@ from app.chat.llm.prompts import get_system_prompt, get_chat_title_prompt
         
 from app.config import config
 from app.database.core import get_db_async
-from app.database.models import Chat, Message, Video
+from app.database.models import Chat, Message, Video, Credits
 from app.clerk import get_current_user, get_current_user_ws
 from app.schemas import TokenData
 
@@ -94,6 +91,20 @@ async def create_chat(
     chat_request: ChatRequest = Body(...), 
     db: AsyncSession = Depends(get_db_async),
 ):
+    if not task_manager.can_user_submit_task(current_user.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Video generation already in progess. Cannot send a message."
+        )
+
+    result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))
+    db_credits = result.scalar_one_or_none()
+
+    assert db_credits is not None
+
+    if not await db_credits.get_current_credits():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient credits")
+
     prompt = chat_request.prompt
 
     messages = [
@@ -154,6 +165,14 @@ async def chat_ws(
 ):
     if not await task_manager.can_user_submit_task(user_id=current_user.user_id):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="User already has an active task")
+    
+    result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))
+    db_credits = result.scalar_one_or_none()
+
+    assert db_credits is not None
+
+    if not await db_credits.get_current_credits():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient credits")
 
     result = await db.execute(
         select(Chat)
@@ -258,44 +277,3 @@ async def get_video_url(
     video_url = await task_manager.get_video_url_aws(video.id, s3_bucket, s3_key, expiry=3600)
 
     return {"video_url": video_url}
-
-@router.post('/chat')
-async def chat(chat_request: ChatRequest = Body(...)):
-    prompt = chat_request.prompt
-    print(prompt)
-    messages = [
-        SystemMessage(get_system_prompt()),
-        HumanMessage(prompt)
-    ]
-    response = await model.ainvoke(messages)
-    logger.info(response)
-
-    random_id = str(uuid.uuid1())
-    temp_wd = f"./output/{random_id}"
-
-    content = response.content
-    
-    if isinstance(content, list):
-        content = content[0]
-
-    parser.parse_and_create_file(content, target_directory=temp_wd)
-
-    subprocess.run(["python", "main.py"], cwd=temp_wd)
-
-    video_dir = Path(f'{temp_wd}/media/videos/1080p60')
-    video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v'}
-    
-    video_file = None
-    for file_path in video_dir.iterdir():
-        if file_path.is_file() and file_path.suffix.lower() in video_extensions:
-            video_file = file_path
-            break
-    
-    if not video_file:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video file not found")
-    
-    return FileResponse(
-        path=str(video_file),
-        media_type='video/mp4',  # Adjust based on actual file type
-        filename=video_file.name
-    )

@@ -1,8 +1,11 @@
 from .core import Base
 
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from datetime import datetime, timedelta
 
 from typing import List
 from uuid import uuid4
@@ -61,3 +64,28 @@ class Video(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     message: Mapped["Message"] = relationship("Message", back_populates="video")
+
+class Credits(Base):
+    __tablename__ = 'credits'
+
+    user_id = Column(String, ForeignKey('users.id'), primary_key=True)
+    amount = Column(Integer, nullable=False, default=500)
+    refreshed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now(), nullable=False)
+
+    async def get_current_credits(self, db: AsyncSession) -> int:
+        if self.refreshed_at and datetime.utcnow() - self.refreshed_at > timedelta(hours=24):
+            self.amount = 500
+            self.refreshed_at = datetime.utcnow()
+            await db.commit()
+        
+        return self.amount
+    
+    async def deduct_credits(self, db: AsyncSession, cost: int):
+        current_credits = await self.get_current_credits(db)
+        if current_credits == 0:
+            raise ValueError("Insufficient credits")
+
+        self.amount = min(current_credits - cost, 0)
+
+        await db.commit()

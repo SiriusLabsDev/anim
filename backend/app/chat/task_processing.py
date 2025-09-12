@@ -15,7 +15,7 @@ import uuid
 
 from app.config import config
 from app.database.core import AsyncSessionLocal
-from app.database.models import Message, Video
+from app.database.models import Credits, Message, Video
 
 from sqlalchemy import select
 
@@ -246,7 +246,7 @@ class RedisTaskManager:
 
                 if success:
                     logger.info(f"Video uploaded to S3 at {s3_key}")
-                    await self.add_video_to_db(chat_id, message_id, s3_bucket, s3_key)
+                    await self.add_video_to_db(chat_id, message_id, user_id, s3_bucket, s3_key)
                 else:
                     logger.error(f"Failed to upload video to S3: {output}")
 
@@ -353,7 +353,7 @@ class RedisTaskManager:
     
         return None
     
-    async def add_video_to_db(self, chat_id: str, message_id: str, s3_bucket: str, s3_key: str):
+    async def add_video_to_db(self, chat_id: str, message_id: str, user_id: str, s3_bucket: str, s3_key: str):
         async with AsyncSessionLocal() as db:
             result = await db.execute(
                 select(Message)
@@ -375,6 +375,12 @@ class RedisTaskManager:
                 )
 
                 db.add(db_video)
+
+                result = await db.execute(select(Credits).where(Credits.user_id == user_id))
+                db_credits = result.scalar_one_or_none()
+                
+                await db_credits.deduct_credits(db, cost=100)
+
                 await db.commit()
                 await db.refresh(db_video)
 
