@@ -32,6 +32,29 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
             setLoadingChat(true);
             const messages = await getMessagesById(chatId);
             useChatStore.getState().setMessages(messages);
+
+            const status = await getStatus()
+
+            if(status && (status.status === "processing" || status.status === "queued")) {
+                if (status.chat_id === chatId) {
+                    setResponseState("generating");
+
+                    let intervalId: NodeJS.Timeout | undefined = undefined;
+                    intervalId = setInterval(async () => {
+                        const statusInfo = await getStatus();
+                        if (!statusInfo || statusInfo.status === "completed") {
+                            clearInterval(intervalId);
+                            cleanup();
+
+                            onVideoReceived();
+                        }
+                        else if(statusInfo.status === "failed") {
+                            cleanup();
+                            onGenerationError("Video generation failed");
+                        }
+                    }, 3 * 1000);
+                }
+            }
         } catch (error) {
             console.error(error);
         }

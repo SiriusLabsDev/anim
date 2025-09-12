@@ -74,7 +74,7 @@ class Credits(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now(), nullable=False)
 
     async def get_current_credits(self, db: AsyncSession) -> int:
-        if self.refreshed_at and datetime.utcnow() - self.refreshed_at > timedelta(hours=24):
+        if self.refreshed_at and datetime.utcnow() - self.refreshed_at >= timedelta(hours=24):
             self.amount = 500
             self.refreshed_at = datetime.utcnow()
             await db.commit()
@@ -86,6 +86,6 @@ class Credits(Base):
         if current_credits == 0:
             raise ValueError("Insufficient credits")
 
-        self.amount = min(current_credits - cost, 0)
+        self.amount = max(current_credits - cost, 0)
 
         await db.commit()

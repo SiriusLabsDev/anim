@@ -7,7 +7,7 @@ import ShinyText from "@/components/ui/shiny-text";
 import useChatStore from "@/store/useChatStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getMessagesById } from "@/lib/api";
+import { getMessagesById, getStatus } from "@/lib/api";
 import { useUser } from "@clerk/nextjs";
 import LoadingSkeleton from "./(components)/LoadingSkeleton";
 import { toast } from "sonner";
@@ -57,11 +57,25 @@ export default function Page() {
     usePromptStore();
   const { setProcessingPrompt } = useChatStore();
 
-  const onSubmit = () => {
-    setProcessingPrompt(true);
-    setLastPrompt(prompt);
-    setStartGeneration(true);
-    setPrompt("");
+  const onSubmit = async () => {
+    const currentPrompt = prompt;
+    try {
+      const status = await getStatus();
+      if(status && (status.status === "processing" || status.status === "queued")) {
+        onMessageSendError("Video generation in progress. Cannot send a new message");
+        return;
+      }
+      setProcessingPrompt(true);
+      setLastPrompt(prompt);
+      setStartGeneration(true);
+      setPrompt("");
+    } catch (error) {
+      console.error(error);
+      setProcessingPrompt(false);
+      setLastPrompt("");
+      setStartGeneration(false);
+      setPrompt(currentPrompt);
+    }
   };
 
   const { user } = useUser();

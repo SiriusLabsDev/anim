@@ -277,3 +277,19 @@ async def get_video_url(
     video_url = await task_manager.get_video_url_aws(video.id, s3_bucket, s3_key, expiry=3600)
 
     return {"video_url": video_url}
+
+
+@router.get('/credits')
+async def get_credits_info(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_async),
+):
+    result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))
+    credits = result.scalar_one_or_none()
+    
+    assert credits is not None
+    
+    return {
+        "credits": await credits.get_current_credits(db),
+        "refreshed_at": credits.refreshed_at
+    }
