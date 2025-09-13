@@ -1,8 +1,9 @@
-import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import { RefObject, use, useCallback, useEffect, useRef, useState } from 'react'
 import { getMessagesById, getStatus } from '@/lib/api';
 import useChatStore from '@/store/useChatStore';
 import { usePromptStore } from '@/store/usePromptStore';
 import useWebSocket from './useWebSocket';
+import { useQuery } from '@tanstack/react-query';
 
 type messageState = "waiting" | "writing" | "coding" | "generating"
 
@@ -15,7 +16,7 @@ interface ChatOptions {
 }
 const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationError, divRef }: ChatOptions) => {
 
-    const [loadingChat, setLoadingChat] = useState(false);
+    // const [loadingChat, setLoadingChat] = useState(false);
     const [responseState, setResponseState] = useState<messageState | null>(null);
     const cleanup = () => {
         useChatStore.getState().setProcessingPrompt(false);
@@ -24,44 +25,6 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
     };
 
     const { connectSocket, socketRef, setOnMessage } = useWebSocket({ chatId, cleanup });
-
-    // Chat History
-    const setMessagesOnPage = useCallback(async () => {
-        try {
-            console.log("setting messages")
-            setLoadingChat(true);
-            const messages = await getMessagesById(chatId);
-            useChatStore.getState().setMessages(messages);
-
-            const status = await getStatus()
-
-            if(status && (status.status === "processing" || status.status === "queued")) {
-                if (status.chat_id === chatId) {
-                    setResponseState("generating");
-
-                    let intervalId: NodeJS.Timeout | undefined = undefined;
-                    intervalId = setInterval(async () => {
-                        const statusInfo = await getStatus();
-                        if (!statusInfo || statusInfo.status === "completed") {
-                            clearInterval(intervalId);
-                            cleanup();
-
-                            onVideoReceived();
-                        }
-                        else if(statusInfo.status === "failed") {
-                            cleanup();
-                            onGenerationError("Video generation failed");
-                        }
-                    }, 3 * 1000);
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        }
-        finally {
-            setLoadingChat(false);
-        }
-    }, [chatId]);
 
     const writingCodeRef = useRef<boolean>(false);
 
@@ -156,15 +119,46 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
 
     const { startGeneration } = usePromptStore();
 
-    useEffect(() => {
-        if (!startGeneration) {
-            // Handle the case where generation has started
-            console.log("startGeneration: ", startGeneration);
-            setMessagesOnPage();
-        }
+    const { data: historyMessages, isLoading: loadingChat, error} = useQuery({
+        queryKey: ['messages', chatId],
+        queryFn: async () => {
+           return await getMessagesById(chatId); 
+        },
+        enabled: !startGeneration && !responseState, // Only run if not generating
+        refetchOnWindowFocus: true,
+    })
 
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    useEffect(() => {
+        console.log(historyMessages);
+        if (!historyMessages) return;
+        const setupHistoryMessagesWithState = async () => {
+            useChatStore.getState().setMessages(historyMessages);
+
+            const status = await getStatus()
+
+            if(status && (status.status === "processing" || status.status === "queued")) {
+                if (status.chat_id === chatId) {
+                    setResponseState("generating");
+
+                    let intervalId: NodeJS.Timeout | undefined = undefined;
+                    intervalId = setInterval(async () => {
+                        const statusInfo = await getStatus();
+                        if (!statusInfo || statusInfo.status === "completed") {
+                            clearInterval(intervalId);
+                            cleanup();
+
+                            onVideoReceived();
+                        }
+                        else if(statusInfo.status === "failed") {
+                            cleanup();
+                            onGenerationError("Video generation failed");
+                        }
+                    }, 3 * 1000);
+                }
+            }
+        }
+        setupHistoryMessagesWithState();
+    }, [historyMessages])
 
     useEffect(() => {
         const handleChatGeneration = async () => {
@@ -172,7 +166,6 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
 
             console.log("here", startGeneration);
             try {
-                usePromptStore.getState().setStartGeneration(false);
                 const { lastPrompt, setLastPrompt } = usePromptStore.getState();
                 if (lastPrompt.trim() === "") return;
 
@@ -202,14 +195,13 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
                     handleIncomingMessage(message);
                 });
 
+                usePromptStore.getState().setStartGeneration(false);
             } catch (error) {
                 console.error(error);
 
                 cleanup();
                 onMessageSendError("Failed to send message. Please try again."); // TODO: add from `error.message`
             }
-
-            // TODO: scroll to the bottom of the chat
         }
 
         handleChatGeneration();

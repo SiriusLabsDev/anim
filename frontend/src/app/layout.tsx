@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { dark } from "@clerk/themes";
+import { ReactQueryProvider } from "@/lib/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
       signInFallbackRedirectUrl={'/chat'}
       signUpFallbackRedirectUrl={'/chat'}
     >
+      <ReactQueryProvider>
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
@@ -41,6 +43,7 @@ export default function RootLayout({
           <Toaster position="bottom-right" richColors theme="dark"/>
         </body>
       </html>
+      </ReactQueryProvider>
     </ClerkProvider>
   );
 }

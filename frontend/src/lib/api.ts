@@ -27,6 +27,7 @@ interface MessageResponse extends Omit<Message, 'videoUrl'> {
 }
 
 export async function getMessagesById(id: string) {
+    console.log("Fetching messages for chat ID:", id);
     const response = await axiosInstance.get(`/chat/messages/${id}`);
     const messages: Message[] = response.data.map((msg: MessageResponse) => ({
         id: msg.id,
@@ -44,11 +45,19 @@ export async function getHistory() {
 
 export async function getStatus() {
     const response = await axiosInstance.get('/chat/running')
-    console.log(response)
     return response.data as StatusResponse;
 }
 
 export async function getVideoUrl(messageId: string) {
     const response = await axiosInstance.get(`/chat/message/video/${messageId}`);
     return response.data.video_url as string | undefined;
+}
+
+export async function getCreditsData() {
+    const response = await axiosInstance.get('/chat/credits');
+    const data = {credits: response.data.credits, refreshed_at: undefined as Date | undefined};
+    if(response.data.refreshed_at) {
+        data.refreshed_at = new Date(response.data.refreshed_at);
+    }
+    return data;
 }

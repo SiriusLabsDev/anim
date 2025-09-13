@@ -102,7 +102,7 @@ async def create_chat(
 
     assert db_credits is not None
 
-    if not await db_credits.get_current_credits():
+    if not await db_credits.get_current_credits(db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient credits")
 
     prompt = chat_request.prompt
@@ -163,7 +163,7 @@ async def chat_ws(
     current_user: TokenData = Depends(get_current_user_ws),
     db: AsyncSession = Depends(get_db_async)
 ):
-    if not await task_manager.can_user_submit_task(user_id=current_user.user_id):
+    if not task_manager.can_user_submit_task(user_id=current_user.user_id):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="User already has an active task")
     
     result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))
@@ -171,7 +171,7 @@ async def chat_ws(
 
     assert db_credits is not None
 
-    if not await db_credits.get_current_credits():
+    if not await db_credits.get_current_credits(db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient credits")
 
     result = await db.execute(

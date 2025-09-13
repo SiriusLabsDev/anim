@@ -53,8 +53,7 @@ export default function Page() {
     toast.error(errMsg);
   };
 
-  const { prompt, setPrompt, setLastPrompt, setStartGeneration } =
-    usePromptStore();
+  const { prompt, setPrompt, setLastPrompt, setStartGeneration } = usePromptStore();
   const { setProcessingPrompt } = useChatStore();
 
   const onSubmit = async () => {
