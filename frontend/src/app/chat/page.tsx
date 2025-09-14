@@ -1,6 +1,5 @@
 "use client"
 
-import { usePromptStore } from "@/store/usePromptStore"
 import { useRouter } from "next/navigation"
 import PromptBox from "@/components/PromptBox"
 
@@ -21,7 +20,7 @@ async function createAndGetChat(prompt: string): Promise<{ title: string; chatId
 }
 
 export default function ChatPage() {
-  const {prompt, setPrompt} = usePromptStore();
+  const {prompt, setPrompt} = useChatStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -31,17 +30,19 @@ export default function ChatPage() {
   }, [])
   
   const onSubmit = async () => {
-    const { setTitle, setProcessingPrompt, setFreezeInput } = useChatStore.getState();
-      const { setLastPrompt, setStartGeneration } = usePromptStore.getState();
+    const { 
+      setTitle, setChatWorkflowRunning, 
+      setGeneratingTitle, setLastPrompt, setStartGeneration
+    } = useChatStore.getState();
+
     try {
-      // get title
-      setProcessingPrompt(true);
-      setFreezeInput(true);
+      setChatWorkflowRunning(true);
+      setGeneratingTitle(true);
 
       const { title, chatId } = await createAndGetChat(prompt);
 
       setLastPrompt(prompt);
-      setStartGeneration(true);
+      setStartGeneration(true);       // to signal the chat workflow to start
       setTitle(title);
       
       router.push(`/chat/${chatId}`);
@@ -55,16 +56,17 @@ export default function ChatPage() {
 
       let errorMessage = "Error sending message.";
       if(error instanceof AxiosError) {
-        errorMessage = error.message;
+        errorMessage = error.response?.data.detail;
       }
 
       toast.error(errorMessage);
-      setProcessingPrompt(false);
+
+      setChatWorkflowRunning(false);
       setStartGeneration(false);
       setTitle(undefined);
 
     } finally {
-      setFreezeInput(false);
+      setGeneratingTitle(false);
     }
   }
 

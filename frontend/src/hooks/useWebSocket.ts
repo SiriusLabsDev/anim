@@ -33,7 +33,6 @@ const useWebSocket = ({ chatId, cleanup }: WebSocketOptions) => {
         socketRef.current.onmessage = (event) => {
             const data = event.data;
             if (data) {
-
                 callback(data);
             } else {
                 console.error('Received unexpected data:', data);

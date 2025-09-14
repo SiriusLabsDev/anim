@@ -11,9 +11,9 @@ import { getMessagesById, getStatus } from "@/lib/api";
 import { useUser } from "@clerk/nextjs";
 import LoadingSkeleton from "./(components)/LoadingSkeleton";
 import { toast } from "sonner";
-import { usePromptStore } from "@/store/usePromptStore";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import useResponseState from "@/hooks/chat/useResponseState";
 
 function AiWorkingAnimation({ text }: { text: string }) {
   return (
@@ -53,8 +53,8 @@ export default function Page() {
     toast.error(errMsg);
   };
 
-  const { prompt, setPrompt, setLastPrompt, setStartGeneration } = usePromptStore();
-  const { setProcessingPrompt } = useChatStore();
+  const { prompt, setPrompt, setLastPrompt, setStartGeneration } = useChatStore();
+  const { setChatWorkflowRunning } = useChatStore();
 
   const onSubmit = async () => {
     const currentPrompt = prompt;
@@ -64,13 +64,13 @@ export default function Page() {
         onMessageSendError("Video generation in progress. Cannot send a new message");
         return;
       }
-      setProcessingPrompt(true);
+      setChatWorkflowRunning(true);
       setLastPrompt(prompt);
       setStartGeneration(true);
       setPrompt("");
     } catch (error) {
       console.error(error);
-      setProcessingPrompt(false);
+      setChatWorkflowRunning(false);
       setLastPrompt("");
       setStartGeneration(false);
       setPrompt(currentPrompt);
@@ -80,6 +80,7 @@ export default function Page() {
   const { user } = useUser();
 
   const divRef = useRef<HTMLDivElement>(null);
+
 
   const { responseState, loadingChat } = useChat({
     chatId: id,

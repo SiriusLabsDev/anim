@@ -1,0 +1,55 @@
+import { useEffect } from 'react';
+import useChatStore from '@/store/useChatStore';
+import { getStatus } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { getMessagesById } from '@/lib/api';
+import useVideoGeneration from './useVideoGeneration';
+import useResponseState from './useResponseState';
+import { start } from 'repl';
+import { messageState } from '@/lib/types';
+
+interface UseHistory {
+    chatId: string;
+    onVideoReceived: () => void;
+    onGenerationError: (errMsg: string) => void;
+    cleanup: () => void;
+    responseState: messageState | null;
+    setResponseState: (state: messageState | null) => void;
+}
+
+const useHistory = ({ chatId, onVideoReceived, onGenerationError, cleanup, responseState, setResponseState }: UseHistory) => {
+    const { startGeneration, chatWorkflowRunning } = useChatStore.getState();
+    const { runStatusPollsForVideoGeneration } = useVideoGeneration({ onVideoReceived, cleanup, onGenerationError });
+
+    const { data: historyMessages, isLoading: loadingChat, error} = useQuery({
+        queryKey: ['messages', chatId],
+        queryFn: async () => {
+           console.log(startGeneration, chatWorkflowRunning, responseState);
+           return await getMessagesById(chatId); 
+        },
+        // TODO: fix this responseState dependency
+        enabled: !startGeneration && !chatWorkflowRunning && !responseState, // Only run if not generating
+        refetchOnWindowFocus: true,
+    })
+
+    useEffect(() => {
+        if (!historyMessages) return;
+        const setupHistoryMessagesWithState = async () => {
+            useChatStore.getState().setMessages(historyMessages);
+
+            const status = await getStatus()
+
+            if(status && (status.status === "processing" || status.status === "queued")) {
+                if (status.chat_id === chatId) {
+                    setResponseState("generating");
+                    runStatusPollsForVideoGeneration();
+                }
+            }
+        }
+        setupHistoryMessagesWithState();
+    }, [historyMessages])
+
+    return { historyMessages, loadingChat } as const;
+}
+
+export default useHistory;

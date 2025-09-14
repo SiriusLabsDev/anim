@@ -91,7 +91,7 @@ async def create_chat(
     chat_request: ChatRequest = Body(...), 
     db: AsyncSession = Depends(get_db_async),
 ):
-    if not task_manager.can_user_submit_task(current_user.user_id):
+    if not await task_manager.can_user_submit_task(current_user.user_id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Video generation already in progess. Cannot send a message."
@@ -163,7 +163,7 @@ async def chat_ws(
     current_user: TokenData = Depends(get_current_user_ws),
     db: AsyncSession = Depends(get_db_async)
 ):
-    if not task_manager.can_user_submit_task(user_id=current_user.user_id):
+    if not await task_manager.can_user_submit_task(user_id=current_user.user_id):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="User already has an active task")
     
     result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))

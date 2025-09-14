@@ -1,3 +1,5 @@
+export type messageState = "waiting" | "writing" | "coding" | "generating"
+
 export interface HistoryItem {
     id: string;
     title: string;

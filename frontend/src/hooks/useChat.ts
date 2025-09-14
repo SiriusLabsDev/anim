@@ -1,11 +1,10 @@
-import { RefObject, use, useCallback, useEffect, useRef, useState } from 'react'
-import { getMessagesById, getStatus } from '@/lib/api';
+import { RefObject, useEffect } from 'react';
 import useChatStore from '@/store/useChatStore';
-import { usePromptStore } from '@/store/usePromptStore';
 import useWebSocket from './useWebSocket';
-import { useQuery } from '@tanstack/react-query';
+import useResponseState from './chat/useResponseState';
+import useChatMessages from './chat/useChatMessages';
+import useHistory from './chat/useHistory';
 
-type messageState = "waiting" | "writing" | "coding" | "generating"
 
 interface ChatOptions {
     chatId: string;
@@ -14,21 +13,26 @@ interface ChatOptions {
     onGenerationError: (errMsg: string) => void;
     divRef: RefObject<HTMLDivElement | null>; // Reference to the div to scroll into view
 }
+
 const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationError, divRef }: ChatOptions) => {
+    const { responseState, setResponseState, cleanup, writingCodeRef, handleResponseStateOnMessage } = useResponseState({
+        onVideoReceived,
+        onGenerationError
+    });
+    const { startGeneration, appendLastPromptToMessages, handleIncomingMessage } = useChatMessages({
+        onVideoReceived,
+        onGenerationError,
+        handleResponseStateOnMessage,
+        responseState,
+        writingCodeRef
+    });
 
-    // const [loadingChat, setLoadingChat] = useState(false);
-    const [responseState, setResponseState] = useState<messageState | null>(null);
-    const cleanup = () => {
-        useChatStore.getState().setProcessingPrompt(false);
-        setResponseState(null);
-        writingCodeRef.current = false;
-    };
-
+    const { loadingChat } = useHistory({ 
+        chatId, onVideoReceived, onGenerationError, cleanup, responseState, setResponseState
+    });
     const { connectSocket, socketRef, setOnMessage } = useWebSocket({ chatId, cleanup });
 
-    const writingCodeRef = useRef<boolean>(false);
-
-    const sendMessagePrompt = (prompt: string) => {
+    function sendMessagePrompt(prompt: string) {
         if (responseState !== null) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -38,127 +42,11 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
                 cleanup();
                 onGenerationError("An error occurred.");
             }
-            socketRef.current.onclose = () => {
-                if(responseState && ["waiting", "writing", "coding"].includes(responseState)) {
-                    cleanup();
-                }
-            }
         } else {
             console.error('WebSocket is not connected');
-            setResponseState(null);
+            cleanup();
         }
     }
-
-    const handleIncomingMessage = useCallback((message: string) => {
-        console.log("message: ", message, message.includes("`"))
-
-        if (responseState === "waiting") {
-            setResponseState("writing");
-        }
-        
-        if(message.includes("```")) {
-            setResponseState("coding");
-        }
-        else if (message === "<done/>") {
-            setResponseState(null);
-            return;
-        }
-        else if (message === "<failed/>") {
-            cleanup();
-            onGenerationError("Video generation failed");
-        }
-        else if (message === "<queued/>") {
-            // poll for status updates
-            setResponseState("generating");
-            let intervalId: NodeJS.Timeout | undefined = undefined;
-
-            intervalId = setInterval(async () => {
-                const statusInfo = await getStatus();
-                if (!statusInfo || statusInfo.status === "completed") {
-                    clearInterval(intervalId);
-                    cleanup();
-
-                    onVideoReceived();
-                }
-                else if(statusInfo.status === "failed") {
-                    cleanup();
-                    onGenerationError("Video generation failed");
-                }
-            }, 3 * 1000);
-            return;
-        }
-
-        if (writingCodeRef.current) {
-            if(message.includes("```")) {
-                writingCodeRef.current = false;
-            }
-            return;
-        }
-
-        if (message.includes("```")) {
-            writingCodeRef.current = true;
-            message = message.split("```")[0];
-        }
-
-        const prevMessages = useChatStore.getState().messages;
-        const newMessages = [...prevMessages];
-        const lastMessageIndex = newMessages.length - 1;
-
-        if (lastMessageIndex >= 0) {
-            const prevResponse = newMessages[lastMessageIndex].response || "";
-            newMessages[lastMessageIndex] = {
-                id: newMessages[lastMessageIndex].id,
-                prompt: newMessages[lastMessageIndex].prompt,
-                response: prevResponse + message
-            };
-        }
-        useChatStore.getState().setMessages(
-            newMessages
-        );
-    }, [responseState, onVideoReceived, onGenerationError]);
-
-    const { startGeneration } = usePromptStore();
-
-    const { data: historyMessages, isLoading: loadingChat, error} = useQuery({
-        queryKey: ['messages', chatId],
-        queryFn: async () => {
-           return await getMessagesById(chatId); 
-        },
-        enabled: !startGeneration && !responseState, // Only run if not generating
-        refetchOnWindowFocus: true,
-    })
-
-    useEffect(() => {
-        console.log(historyMessages);
-        if (!historyMessages) return;
-        const setupHistoryMessagesWithState = async () => {
-            useChatStore.getState().setMessages(historyMessages);
-
-            const status = await getStatus()
-
-            if(status && (status.status === "processing" || status.status === "queued")) {
-                if (status.chat_id === chatId) {
-                    setResponseState("generating");
-
-                    let intervalId: NodeJS.Timeout | undefined = undefined;
-                    intervalId = setInterval(async () => {
-                        const statusInfo = await getStatus();
-                        if (!statusInfo || statusInfo.status === "completed") {
-                            clearInterval(intervalId);
-                            cleanup();
-
-                            onVideoReceived();
-                        }
-                        else if(statusInfo.status === "failed") {
-                            cleanup();
-                            onGenerationError("Video generation failed");
-                        }
-                    }, 3 * 1000);
-                }
-            }
-        }
-        setupHistoryMessagesWithState();
-    }, [historyMessages])
 
     useEffect(() => {
         const handleChatGeneration = async () => {
@@ -166,39 +54,40 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
 
             console.log("here", startGeneration);
             try {
-                const { lastPrompt, setLastPrompt } = usePromptStore.getState();
-                if (lastPrompt.trim() === "") return;
-
-                const {setMessages, messages: prevMessages} = useChatStore.getState();
-                // const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: undefined}];
-                const newMessages = [...prevMessages, {id: "random", prompt: lastPrompt, response: ""}];
-
-                setMessages(newMessages);
-                setLastPrompt("");     
-
-                console.log(divRef.current);
-
-                setTimeout(() => {
+                // 1. Prepare UI
+                const lastPrompt = appendLastPromptToMessages(() => {
                     divRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
+                });
+                if (!lastPrompt) return;
 
-                await connectSocket(); 
+                // 2. Connect WebSocket
+                const ws = await connectSocket();
 
-                // setMessages([
-                //     ...newMessages.slice(0, newMessages.length-1),
-                //     {...newMessages[newMessages.length - 1], response: ""}
-                // ]);
+                // 3. Setup WebSocket event handlers
+                ws.onerror = () => {
+                    cleanup();
+                    onMessageSendError("Some error occurred. Please try again.");
+                }
+                ws.onclose = () => {
+                    useChatStore.getState().setChatWorkflowRunning(false);
 
+                    if(responseState && ["waiting", "writing", "coding"].includes(responseState)) {
+                        cleanup();
+                        onGenerationError("Server error. Please try again.");
+                    }
+                }
+
+                // 4. Send prompt and handle incoming message stream
                 sendMessagePrompt(lastPrompt);
-
                 setOnMessage((message: string) => {
                     handleIncomingMessage(message);
                 });
 
-                usePromptStore.getState().setStartGeneration(false);
+                // TODO: uncomment later
+                useChatStore.getState().setStartGeneration(false);
+                console.log("bhoot", useChatStore.getState().chatWorkflowRunning);
             } catch (error) {
                 console.error(error);
-
                 cleanup();
                 onMessageSendError("Failed to send message. Please try again."); // TODO: add from `error.message`
             }
@@ -209,14 +98,7 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startGeneration]);
 
-    useEffect(() => {
-        useChatStore.getState().setProcessingPrompt(responseState !== null);
-    }, [responseState])
-
-
     return {
-        connectSocket,
-        setOnMessage,
         sendMessagePrompt,
         responseState,
         handleIncomingMessage,
