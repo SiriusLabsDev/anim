@@ -17,9 +17,15 @@ def check_config() -> None:
         'AWS_ACCESS_KEY_ID',
         'AWS_SECRET_ACCESS_KEY',
         'AWS_S3_BUCKET',
-        'AWS_BUCKET_REGION'
+        'AWS_BUCKET_REGION',
+        'DOCKER_CONTAINER',
+        'ENVIRONMENT'
     ]
     
     for var in required_env_vars:
         if var not in config:
             raise ValueError(f"{var} is required")
+        
+if config['DOCKER_CONTAINER'] == 'TRUE' and config['ENVIRONMENT'] == 'DEVELOPMENT':
+    config['REDIS_URL'] = config['REDIS_URL'].replace('localhost', 'host.docker.internal')
+        

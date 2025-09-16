@@ -11,19 +11,21 @@ interface ChatOptions {
     onVideoReceived: () => void;
     onMessageSendError: (errMsg: string) => void;
     onGenerationError: (errMsg: string) => void;
-    divRef: RefObject<HTMLDivElement | null>; // Reference to the div to scroll into view
+    divRef: RefObject<HTMLDivElement | null>;               // Reference to the div to scroll into view
 }
 
 const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationError, divRef }: ChatOptions) => {
-    const { responseState, setResponseState, cleanup, writingCodeRef, handleResponseStateOnMessage } = useResponseState({
+    // Initialize response state and its handlers
+    const { 
+        responseState, setResponseState, cleanup, writingCodeRef, handleResponseStateOnMessage } = useResponseState({
         onVideoReceived,
         onGenerationError
     });
+
     const { startGeneration, appendLastPromptToMessages, handleIncomingMessage } = useChatMessages({
         onVideoReceived,
         onGenerationError,
         handleResponseStateOnMessage,
-        responseState,
         writingCodeRef
     });
 
@@ -83,9 +85,7 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
                     handleIncomingMessage(message);
                 });
 
-                // TODO: uncomment later
                 useChatStore.getState().setStartGeneration(false);
-                console.log("bhoot", useChatStore.getState().chatWorkflowRunning);
             } catch (error) {
                 console.error(error);
                 cleanup();

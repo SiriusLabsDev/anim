@@ -4,8 +4,6 @@ import { getStatus } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { getMessagesById } from '@/lib/api';
 import useVideoGeneration from './useVideoGeneration';
-import useResponseState from './useResponseState';
-import { start } from 'repl';
 import { messageState } from '@/lib/types';
 
 interface UseHistory {

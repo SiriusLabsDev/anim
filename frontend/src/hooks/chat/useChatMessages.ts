@@ -1,17 +1,14 @@
 import useChatStore from "@/store/useChatStore";
 import { RefObject, useCallback, useRef } from "react";
-import useResponseState from "./useResponseState";
-import { messageState } from "@/lib/types";
 
 interface UseChatMessages {
     onVideoReceived: () => void;
     onGenerationError: (errMsg: string) => void;
     handleResponseStateOnMessage: (message: string) => boolean;
-    responseState: messageState | null;
     writingCodeRef: RefObject<boolean>;
 }
 
-const useChatMessages = ({ onVideoReceived, onGenerationError, handleResponseStateOnMessage, responseState, writingCodeRef }: UseChatMessages) => {
+const useChatMessages = ({ onVideoReceived, onGenerationError, handleResponseStateOnMessage, writingCodeRef }: UseChatMessages) => {
     const { startGeneration, appendLastPromptToMessages } = useChatStore();
 
     const handleIncomingMessage = useCallback((message: string) => {
@@ -48,7 +45,7 @@ const useChatMessages = ({ onVideoReceived, onGenerationError, handleResponseSta
         useChatStore.getState().setMessages(
             newMessages
         );
-    }, [responseState, onVideoReceived, onGenerationError]);
+    }, [onVideoReceived, onGenerationError]);
     return { 
         startGeneration, 
         appendLastPromptToMessages,
