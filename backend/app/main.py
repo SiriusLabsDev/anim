@@ -32,3 +32,11 @@ async def event_stream():
 @app.get("/stream")
 async def stream():
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "ok",
+        "environment": config['ENVIRONMENT'],
+        "frontend_url": config['FRONTEND_URL'],
+    }
