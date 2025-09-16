@@ -9,7 +9,7 @@ const useWebSocket = ({ chatId, cleanup }: WebSocketOptions) => {
     const socketRef = useRef<WebSocket | null>(null);
 
     const connectSocket = async () => {
-        const ws = new WebSocket(`ws://localhost:8000/api/chat/ws?chat_id=${chatId}`);
+        const ws = new WebSocket(`${process.env.NEXT_PUBLIC_BASE_SOCKET_URL}/chat/ws?chat_id=${chatId}`);
         await new Promise<void>((resolve, reject) => {
             ws.onopen = () => {
                 console.log('WebSocket connection established')

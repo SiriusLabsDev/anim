@@ -21,7 +21,7 @@ def verify(req: Request | WebSocket) -> RequestState:
     request_state = sdk.authenticate_request(
         req,
         AuthenticateRequestOptions(
-            authorized_parties=['http://localhost:3000'],
+            authorized_parties=[config['FRONTEND_URL'] or 'http://localhost:3000'],
         )
     )
 
