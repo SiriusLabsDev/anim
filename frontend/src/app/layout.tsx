@@ -33,6 +33,7 @@ export default function RootLayout({
       appearance={{ theme: dark}} 
       signInFallbackRedirectUrl={'/chat'}
       signUpFallbackRedirectUrl={'/chat'}
+      // allowedRedirectOrigins={[process.env.NEXT_PUBLIC_API_URL!]}
     >
       <ReactQueryProvider>
       <html lang="en">

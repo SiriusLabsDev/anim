@@ -1,6 +1,10 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
-export default clerkMiddleware();
+export default clerkMiddleware({
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  authorizedParties: [process.env.NEXT_PUBLIC_API_URL!],
+  domain: ".siriuslabs.dev"
+});
 
 export const config = {
   matcher: [
