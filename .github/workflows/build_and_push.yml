@@ -20,7 +20,7 @@ jobs:
             password: ${{ secrets.DOCKER_PASSWORD }}
         
         - name: Build Docker image
-          run: docker build -t anim-server:latest .
+          run: docker build -t anim-server:latest ./backend
         
         - name: Push Docker image to Docker hub
           run: docker push anim-server:latest
