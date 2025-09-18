@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 import useChatStore from '@/store/useChatStore';
-import { getStatus } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { getMessagesById } from '@/lib/api';
 import useVideoGeneration from './useVideoGeneration';
 import { messageState } from '@/lib/types';
+import useApi from '@/hooks/useApi';
 
 interface UseHistory {
     chatId: string;
@@ -16,6 +15,7 @@ interface UseHistory {
 }
 
 const useHistory = ({ chatId, onVideoReceived, onGenerationError, cleanup, responseState, setResponseState }: UseHistory) => {
+    const { getMessagesById, getStatus } = useApi();
     const { startGeneration, chatWorkflowRunning } = useChatStore.getState();
     const { runStatusPollsForVideoGeneration } = useVideoGeneration({ onVideoReceived, cleanup, onGenerationError });
 

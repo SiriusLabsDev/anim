@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.config import config
-from app.schemas import TokenData
+from app.schemas import TokenData, DummyRequest
 
 from clerk_backend_api import Clerk
 from clerk_backend_api.security.types import AuthenticateRequestOptions, RequestState
@@ -36,7 +36,11 @@ async def get_current_user_ws(ws: WebSocket, db: AsyncSession = Depends(get_db_a
     token_data = await verify_user_and_return_user_data(ws, db)
     return token_data
 
-async def verify_user_and_return_user_data(req: Request | WebSocket, db: AsyncSession):
+async def get_current_user_ws_dummy(dummy_request: DummyRequest, db: AsyncSession = Depends(get_db_async)):
+    token_data = await verify_user_and_return_user_data(dummy_request, db)
+    return token_data
+
+async def verify_user_and_return_user_data(req: Request | WebSocket | DummyRequest, db: AsyncSession):
     loop = asyncio.get_running_loop()
 
     if not loop or not loop.is_running():

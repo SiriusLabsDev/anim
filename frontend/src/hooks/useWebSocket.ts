@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/nextjs";
 import { useRef } from "react"
 
 interface WebSocketOptions {
@@ -7,9 +8,10 @@ interface WebSocketOptions {
 
 const useWebSocket = ({ chatId, cleanup }: WebSocketOptions) => {
     const socketRef = useRef<WebSocket | null>(null);
-
+    const { getToken } = useAuth();
     const connectSocket = async () => {
-        const ws = new WebSocket(`${process.env.NEXT_PUBLIC_BASE_SOCKET_URL}/chat/ws?chat_id=${chatId}`);
+        const token = await getToken();
+        const ws = new WebSocket(`${process.env.NEXT_PUBLIC_BASE_SOCKET_URL}/chat/ws?chat_id=${chatId}&token=${token}`);
         await new Promise<void>((resolve, reject) => {
             ws.onopen = () => {
                 console.log('WebSocket connection established')

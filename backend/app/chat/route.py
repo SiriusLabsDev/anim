@@ -15,8 +15,8 @@ from app.chat.llm.prompts import get_system_prompt, get_chat_title_prompt
 from app.config import config
 from app.database.core import get_db_async
 from app.database.models import Chat, Message, Video, Credits
-from app.clerk import get_current_user, get_current_user_ws
-from app.schemas import TokenData
+from app.clerk import get_current_user, get_current_user_ws_dummy
+from app.schemas import TokenData, DummyRequest
 
 from .task_processing import RedisTaskManager
 
@@ -156,16 +156,21 @@ async def update_chat_title(
     }
 
 
+
 @router.websocket('/ws')
 async def chat_ws(
     ws: WebSocket,
     chat_id: str = Query(...),
-    current_user: TokenData = Depends(get_current_user_ws),
+    token: str = Query(...),
+    dummy_request: DummyRequest = Depends(lambda token: DummyRequest(headers={"Authorization": f"Bearer {token}"})),
+    # current_user: TokenData = Depends(get_current_user_ws_dummy),
     db: AsyncSession = Depends(get_db_async)
 ):
+    current_user = await get_current_user_ws_dummy(dummy_request, db)
+
     if not await task_manager.can_user_submit_task(user_id=current_user.user_id):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="User already has an active task")
-    
+
     result = await db.execute(select(Credits).where(Credits.user_id == current_user.user_id))
     db_credits = result.scalar_one_or_none()
 
@@ -223,14 +228,15 @@ async def chat_ws(
         manim_code = parser.parse_and_return_code(output)
 
         # Submit task for video generation
-        await task_manager.submit_task(
-            user_id=current_user.user_id, 
-            chat_id=chat_id, 
-            message_id=db_message.id,
-            manim_code=manim_code
-        )
+        if manim_code:
+            await task_manager.submit_task(
+                user_id=current_user.user_id, 
+                chat_id=chat_id, 
+                message_id=db_message.id,
+                manim_code=manim_code
+            )
 
-        await ws.send_text("<queued/>")
+            await ws.send_text("<queued/>")
 
     except Exception as e:
         print(f"WebSocket error: {e}")

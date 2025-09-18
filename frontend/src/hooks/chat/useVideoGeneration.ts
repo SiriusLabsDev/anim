@@ -1,5 +1,4 @@
-import React from 'react'
-import { getStatus } from '@/lib/api';
+import useApi from '@/hooks/useApi';
 
 interface VideoGenerationOptions {
     onVideoReceived: () => void;
@@ -7,6 +6,7 @@ interface VideoGenerationOptions {
     onGenerationError: (errMsg: string) => void;
 }
 const useVideoGeneration = ({onVideoReceived, cleanup, onGenerationError}: VideoGenerationOptions) => {
+    const { getStatus } = useApi();
     const runStatusPollsForVideoGeneration = () => {
         let intervalId: NodeJS.Timeout | undefined = undefined;
         intervalId = setInterval(async () => {

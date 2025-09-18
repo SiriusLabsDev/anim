@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import History from "./(components)/History";
-import { getHistory, getCreditsData } from "@/lib/api";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { useParams, useRouter } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -10,7 +9,7 @@ import SidebarTriggerCustom from "@/components/ui/sidebar-trigger";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { Key, Loader2 } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import useApi from "@/hooks/useApi";
 
 const KeyValueDisplay = ({field, value}: {field: string; value: string | number;}) => {
   return(
@@ -29,6 +28,7 @@ export default function Layout({children}: {children: React.ReactNode}) {
   const { user, isSignedIn } = useUser();
 
   const { isLoaded } = useAuth();
+  const { getHistory, getCreditsData } = useApi();
   
   const router = useRouter();
 
