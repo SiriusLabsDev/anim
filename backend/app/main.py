@@ -40,4 +40,5 @@ async def health_check():
         "status": "ok",
         "environment": config['ENVIRONMENT'],
         "frontend_url": config['FRONTEND_URL'],
+        "random_var": config.get('RANDOM_VAR', 'not set')
     }

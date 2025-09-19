@@ -32,6 +32,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+ENV RANDOM_VAR=${RANDOM_VAR}
+
 EXPOSE 8000
 
 CMD [ "uvicorn", "app.main:app", "--port", "8000", "--host", "0.0.0.0"]

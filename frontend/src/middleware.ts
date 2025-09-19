@@ -1,5 +1,4 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 
 export default clerkMiddleware({
   apiUrl: process.env.NEXT_PUBLIC_API_URL,
