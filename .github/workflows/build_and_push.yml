@@ -20,7 +20,7 @@ jobs:
             password: ${{ secrets.DOCKER_PASSWORD }}
         
         - name: Build Docker image
-          run: docker build -t RANDOM_VAR=$(date +%s%N | cut -b1-13) ${{ secrets.DOCKER_USERNAME }}/anim-server:latest ./backend
+          run: docker build --build-arg RANDOM_VAR=$(date +%s%N | cut -b1-13) -t ${{ secrets.DOCKER_USERNAME }}/anim-server:latest ./backend
         
         - name: Push Docker image to Docker hub
           run: docker push ${{ secrets.DOCKER_USERNAME }}/anim-server:latest
