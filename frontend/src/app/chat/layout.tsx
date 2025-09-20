@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import History from "./(components)/History";
+import History from "./components/History";
 import { useHistoryStore } from "@/store/useHistoryStore";
 import { useParams, useRouter } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import SidebarTriggerCustom from "@/components/ui/sidebar-trigger";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { Key, Loader2 } from "lucide-react";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import useApi from "@/hooks/useApi";
+import { Metadata } from "next";
+import Title from "./components/Title";
 
 const KeyValueDisplay = ({field, value}: {field: string; value: string | number;}) => {
   return(
@@ -24,6 +26,7 @@ const KeyValueDisplay = ({field, value}: {field: string; value: string | number;
 }
 
 export default function Layout({children}: {children: React.ReactNode}) {
+  // TODO: make this a server component and move the history and credits to separate components
   const [fetchingHistory, setFetchingHistory] = useState(false);
   const { user, isSignedIn } = useUser();
 
@@ -51,20 +54,6 @@ export default function Layout({children}: {children: React.ReactNode}) {
         setFetchingHistory(false);
       }
     };
-    fetchHistory();
-  }, [user]);
-
-  const params = useParams();
-  const id = params.id as string | undefined;
-
-  useEffect(() => {
-    if(isLoaded && !isSignedIn) {
-      router.replace("/sign-in");
-    }
-  }, [isLoaded, isSignedIn, router])
-
-  useEffect(() => {
-    if(!isSignedIn) return;
     const fetchCredits = async () => {
       try {
         setFetchingCredits(true);
@@ -78,9 +67,21 @@ export default function Layout({children}: {children: React.ReactNode}) {
         setFetchingCredits(false);
       }
     };
-    fetchCredits();
-  }, [isSignedIn])
+    const fetchHistoryAndCredits = async () => {
+      await fetchHistory();
+      await fetchCredits();
+    }
+    fetchHistoryAndCredits();
+  }, [user]);
 
+  const params = useParams();
+  const id = params.id as string | undefined;
+  
+  useEffect(() => {
+    if(isLoaded && !isSignedIn) {
+      router.replace("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router])
 
   return (
     !isLoaded ? (
@@ -114,6 +115,7 @@ export default function Layout({children}: {children: React.ReactNode}) {
             </div>
           </DialogContent>
       </Dialog>
+      <Title id={id} />
     </SidebarProvider>
   );
 }

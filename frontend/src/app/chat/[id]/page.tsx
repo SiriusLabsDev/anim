@@ -8,7 +8,7 @@ import useChatStore from "@/store/useChatStore";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useUser } from "@clerk/nextjs";
-import LoadingSkeleton from "./(components)/LoadingSkeleton";
+import LoadingSkeleton from "./components/LoadingSkeleton";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useRef } from "react";
