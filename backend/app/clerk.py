@@ -77,8 +77,9 @@ async def verify_user_and_return_user_data(req: Request | WebSocket | DummyReque
         credits = Credits(user_id=user_id, amount=500)
 
         db.add(user)
-        db.add(credits)
+        await db.commit()
 
+        db.add(credits)
         await db.commit()
         await db.refresh(user)
 
