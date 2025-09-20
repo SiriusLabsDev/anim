@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import PromptBox from "@/components/PromptBox"
 
-import { axiosInstance } from "@/lib/api"
+import useApi from "@/hooks/useApi"
 import useChatStore from "@/store/useChatStore"
 import { useEffect } from "react"
 import { useHistoryStore } from "@/store/useHistoryStore"
@@ -11,13 +11,6 @@ import { AxiosError } from "axios"
 import { toast } from "sonner"
 
 
-async function createAndGetChat(prompt: string): Promise<{ title: string; chatId: string }> {
-  const response = await axiosInstance.post("/chat/create", { prompt });
-  return {
-    'title': response.data.title,
-    'chatId': response.data.id,
-  }
-}
 
 export default function ChatPage() {
   const {prompt, setPrompt} = useChatStore();
@@ -29,6 +22,7 @@ export default function ChatPage() {
     setMessages([]);
   }, [])
   
+  const { createAndGetChat } = useApi();
   const onSubmit = async () => {
     const { 
       setTitle, setChatWorkflowRunning, 

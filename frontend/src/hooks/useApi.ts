@@ -74,12 +74,22 @@ const useApi = () => {
         return data;
     }
 
+    async function createAndGetChat(prompt: string): Promise<{ title: string; chatId: string }> {
+        const axiosInstance = await getAxiosInstance();
+        const response = await axiosInstance.post("/chat/create", { prompt });
+        return {
+            'title': response.data.title,
+            'chatId': response.data.id,
+        }
+    }
+
     return {
         getMessagesById,
         getHistory,
         getStatus,
         getVideoUrl,
-        getCreditsData
+        getCreditsData,
+        createAndGetChat
     }
 }
 
