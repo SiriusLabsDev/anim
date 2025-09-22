@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useRef } from "react";
 import useResponseState from "@/hooks/chat/useResponseState";
 import useApi from "@/hooks/useApi";
+import ReactPlayer from 'react-player'
 
 function AiWorkingAnimation({ text }: { text: string }) {
   return (
@@ -91,6 +92,8 @@ export default function Page() {
     divRef,
   });
 
+  console.log(messages);
+
   return (
     <div className="w-full relative">
       {/* Larger div to have scrollbar at the very sides */}
@@ -153,13 +156,21 @@ export default function Page() {
                           {/* Video */}
                           {message.videoUrl && (
                             <div className="mt-4 mb-auto">
-                              <video controls className="max-w-full rounded-lg">
+                              {/* <video controls key={message.videoUrl} className="max-w-full rounded-lg">
                                 <source
+                                  key={message.videoUrl}
                                   src={message.videoUrl}
                                   type="video/mp4"
                                 />
                                 Your browser does not support video.
-                              </video>
+                              </video> */}
+                              <ReactPlayer 
+                                src={message.videoUrl} 
+                                className="anim-video" 
+                                controls
+                                width={"100%"}
+                                height={"100%"}
+                              />
                             </div>
                           )}
                         </div>

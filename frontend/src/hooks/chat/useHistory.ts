@@ -19,6 +19,8 @@ const useHistory = ({ chatId, onVideoReceived, onGenerationError, cleanup, respo
     const { startGeneration, chatWorkflowRunning } = useChatStore.getState();
     const { runStatusPollsForVideoGeneration } = useVideoGeneration({ onVideoReceived, cleanup, onGenerationError });
 
+    // used to stop the queryFn from running if the component mounted
+    // with startGeneration = True
     const [temp, setTemp] = useState(false);
 
     // TODO: find a better fix
