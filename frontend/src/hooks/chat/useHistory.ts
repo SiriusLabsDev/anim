@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useChatStore from '@/store/useChatStore';
 import { useQuery } from '@tanstack/react-query';
 import useVideoGeneration from './useVideoGeneration';
@@ -19,6 +19,15 @@ const useHistory = ({ chatId, onVideoReceived, onGenerationError, cleanup, respo
     const { startGeneration, chatWorkflowRunning } = useChatStore.getState();
     const { runStatusPollsForVideoGeneration } = useVideoGeneration({ onVideoReceived, cleanup, onGenerationError });
 
+    const [temp, setTemp] = useState(false);
+
+    // TODO: find a better fix
+    useEffect(() => {
+        if(startGeneration) {
+            setTemp(true);
+        }
+    }, [])
+
     const { data: historyMessages, isLoading: loadingChat, error} = useQuery({
         queryKey: ['messages', chatId],
         queryFn: async () => {
@@ -26,7 +35,7 @@ const useHistory = ({ chatId, onVideoReceived, onGenerationError, cleanup, respo
            return await getMessagesById(chatId); 
         },
         // TODO: fix this responseState dependency
-        enabled: !startGeneration && !chatWorkflowRunning && !responseState, // Only run if not generating
+        enabled: !startGeneration && !chatWorkflowRunning && !responseState && !temp, // Only run if not generating
         refetchOnWindowFocus: true,
     })
 
