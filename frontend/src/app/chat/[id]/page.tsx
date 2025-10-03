@@ -11,8 +11,7 @@ import { useUser } from "@clerk/nextjs";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useRef } from "react";
-import useResponseState from "@/hooks/chat/useResponseState";
+import { use, useEffect, useRef } from "react";
 import useApi from "@/hooks/useApi";
 import ReactPlayer from 'react-player'
 
@@ -91,16 +90,28 @@ export default function Page() {
     divRef,
   });
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const useFirst = useRef(true);
+
+  useEffect(() => {
+    if(!loadingChat && useFirst.current) {
+      setTimeout(() => {
+        divRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 100);
+      useFirst.current = false;
+    }
+  }, [loadingChat]);
+
   return (
     <div className="w-full relative">
       {/* Larger div to have scrollbar at the very sides */}
-      <div className="flex justify-center items-center scrollbar overflow-y-auto w-full">
+      <div className="flex justify-center items-center scrollbar overflow-y-auto w-full" ref={containerRef}>
         {/* Width constrained diff for messages and prompt box */}
         <div className="h-fit justify-between md:min-w-[min(95%,47rem)] md:max-w-[47rem]">
           {/* Flex box (col) for messages and prompt box */}
           <div className="flex flex-col h-screen justify-between w-full">
             {/* Messages */}
-            <div className="flex-1 mt-8 max-h-fit ">
+            <div className="flex-1 mt-8 max-h-fit" id="temp">
               {loadingChat && <LoadingSkeleton />}
               <AnimatePresence initial={false}>
                 {!loadingChat &&
@@ -179,7 +190,7 @@ export default function Page() {
               <div ref={divRef} id="scroller-div"></div>
             </div>
             {/* Prompt box */}
-            <div className="sticky bottom-0 bg-[#0F0F10] pb-2 w-[min(98%,48rem)] mx-auto">
+            <div className="sticky bottom-0 bg-[#0F0F10] pb-2 w-[min(98%,48rem)] mx-auto" id="prompt-box">
               <PromptBox onSubmit={onSubmit} />
             </div>
           </div>

@@ -28,6 +28,7 @@ def get_system_prompt() -> str:
         • Code must compile with `python3 -m py_compile main.py`.  
         • Before you start writing the code, analyze and make sure that the program has absolutely no syntax error.
         • Your code must contain the logic to render the video in an `if __name__ == "__main__":` block (see example).
+        • You must not write anything after the code block. All the conversational text must be before the code block.
 
         <example>
             ```py

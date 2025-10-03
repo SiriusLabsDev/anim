@@ -58,7 +58,7 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
           <SidebarMenuItem key={"Logo"}>
             <div className="flex gap-2 py-4 items-center text-foreground z-40">
               <SidebarTrigger size={"sm"} ref={triggerRef} />
-              <h3 className="font-bold">Anim </h3>
+              <h3 className="font-bold">A N I M</h3>
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem key={"New chat"}>
@@ -87,8 +87,8 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
               )}
               <AnimatePresence mode="popLayout">
                 <div className="">
-                  {!fetchingHistory &&
-                    history.map((item) => (
+                  {!fetchingHistory && ( history.length !== 0 ?
+                    (history.map((item) => (
                       <motion.div
                         key={item.id}
                         layout // This enables layout animations for position changes
@@ -121,7 +121,12 @@ const History: React.FC<Props> = ({ fetchingHistory }) => {
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       </motion.div>
-                    ))}
+                    ))) : (
+                      <div className="text-sm text-gray-500 p-4 italic">
+                        No recent chats.
+                      </div>
+                    )
+                    )}
                 </div>
               </AnimatePresence>
             </SidebarMenu>
