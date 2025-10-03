@@ -9,6 +9,7 @@ config = {
 def check_config() -> None:
     required_env_vars = [
         'FRONTEND_URL',
+        'LLM',
         'GOOGLE_API_KEY',
         'ASYNC_DB_URI',
         'CLERK_SECRET_KEY',
@@ -21,6 +22,9 @@ def check_config() -> None:
         'DOCKER_CONTAINER',
         'ENVIRONMENT'
     ]
+
+    if config.get('LLM') and config['LLM'] == 'CLAUDE':
+        required_env_vars.append('CLAUDE_API_KEY')
     
     for var in required_env_vars:
         if var not in config:
