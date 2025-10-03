@@ -12,7 +12,6 @@ const useChatMessages = ({ onVideoReceived, onGenerationError, handleResponseSta
     const { startGeneration, appendLastPromptToMessages } = useChatStore();
 
     const handleIncomingMessage = useCallback((message: string) => {
-        console.log("message: ", message, message.includes("`"))
 
         const shouldContinue = handleResponseStateOnMessage(message);
         if (!shouldContinue) return;

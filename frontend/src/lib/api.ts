@@ -27,7 +27,6 @@ interface MessageResponse extends Omit<Message, 'videoUrl'> {
 }
 
 export async function getMessagesById(id: string) {
-    console.log("Fetching messages for chat ID:", id);
     const response = await axiosInstance.get(`/chat/messages/${id}`);
     const messages: Message[] = response.data.map((msg: MessageResponse) => ({
         id: msg.id,

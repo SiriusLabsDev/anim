@@ -47,7 +47,6 @@ export default function Page() {
   };
 
   const onMessageSendError = (errMsg: string) => {
-    console.log("displaying toast 🥃");
     toast.error(errMsg);
   };
   // TODO: Change this
@@ -91,8 +90,6 @@ export default function Page() {
     onGenerationError,
     divRef,
   });
-
-  console.log(messages);
 
   return (
     <div className="w-full relative">
