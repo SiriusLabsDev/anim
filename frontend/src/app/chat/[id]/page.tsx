@@ -11,7 +11,7 @@ import { useUser } from "@clerk/nextjs";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { use, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import useApi from "@/hooks/useApi";
 import ReactPlayer from 'react-player'
 
@@ -35,7 +35,7 @@ export default function Page() {
   const id = params.id as string;
 
   const { messages } = useChatStore();
-  const { getMessagesById, getStatus } = useApi();
+  const { getMessagesById, getStatus, getCreditsData } = useApi();
 
   const onVideoReceived = () => {
     const setMessagesOnPage = async () => {
@@ -64,6 +64,14 @@ export default function Page() {
         onMessageSendError("Video generation in progress. Cannot send a new message");
         return;
       }
+
+      // TODO: combine with getStatus in parallel api calls
+      const creditsData = await getCreditsData();
+      if (creditsData.credits === 0) {
+        toast.error("Insufficient Credits");
+        return;
+      }
+
       setChatWorkflowRunning(true);
       setLastPrompt(prompt);
       setStartGeneration(true);
