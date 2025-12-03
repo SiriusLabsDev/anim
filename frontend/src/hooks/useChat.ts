@@ -71,8 +71,6 @@ const useChat = ({ chatId, onVideoReceived, onMessageSendError, onGenerationErro
                     onMessageSendError("Some error occurred. Please try again.");
                 }
                 ws.onclose = () => {
-                    useChatStore.getState().setChatWorkflowRunning(false);
-
                     if(responseState && ["waiting", "writing", "coding"].includes(responseState)) {
                         cleanup();
                         onGenerationError("Server error. Please try again.");
