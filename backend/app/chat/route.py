@@ -123,7 +123,7 @@ async def create_chat(
     if not chat_title:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chat title cannot be empty")
 
-    db_chat = Chat(title=chat_title, user_id=current_user.user_id) 
+    db_chat = Chat(title=chat_title[:80], user_id=current_user.user_id) 
     db.add(db_chat)
     await db.commit()
     await db.refresh(db_chat)

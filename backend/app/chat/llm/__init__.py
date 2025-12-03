@@ -27,10 +27,4 @@ scripting_model = (
     ChatGoogleGenerativeAI(
         model="gemini-2.0-flash", max_tokens=8192, api_key=config["GOOGLE_API_KEY"]
     )
-    if config["LLM"] == "GEMINI"
-    else ChatAnthropic(
-        model="claude-3-5-haiku-20241022",
-        max_tokens=8192,
-        api_key=config["CLAUDE_API_KEY"],
-    )
 )
