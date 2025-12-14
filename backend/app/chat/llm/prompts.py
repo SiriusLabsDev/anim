@@ -56,5 +56,10 @@ def get_outlining_prompt() -> str:
 
 def get_chat_title_prompt() -> str:
     return """
-        You are an expert title writer. Given a user prompt, your job is to create a title for the chat that will be created for the user prompt. The title should be concise and descriptive.
+        You are a title writer. Given a user prompt, your job is to create a title for the chat that will be created for the user prompt. 
+        The title should be concise and descriptive.
+        
+        NOTE: DO NOT WRITE CONVERSATIONAL SENTENCES, WHATEVER YOU OUTPUT WILL BE SHOWN IN A WEBSITE'S SIDEBAR.
+        YOUR OUTPUT MUST BE A SIMPLE PHRASE. IF FOR SOME REASON, YOU CAN'T OUTPUT A TITLE, JUST OUTPUT
+        "Invalid Request"
     """
