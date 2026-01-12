@@ -1,20 +1,10 @@
 "use client"
-import Navbar from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { FaArrowRightLong } from "react-icons/fa6";
-import { motion, stagger } from "motion/react";
-import { Card } from "@/components/ui/card";
-import Pricing from "@/components/home/pricing";
+import { motion } from "motion/react";
 import dynamic from "next/dynamic";
 import 'plyr/dist/plyr.css';
-import About from "@/components/home/about";
-import Footer from "@/components/home/footer";
-import { cn } from "@/lib/utils";
-import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import HowTo from "@/components/home/how-to";
 import Me from "@/components/home/me";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
 import CtaButton from "@/components/home/cta-button";
 
 const Plyr = dynamic(() => import("plyr-react"), { ssr: false });
@@ -55,7 +45,7 @@ export default function Home() {
             <motion.div className="flex flex-col gap-0" variants={item}>
               <h1 className="text-[4rem] font-bold flex justify-center">
                 <div 
-                  className="w-[80%] leading-20"
+                  className="w-[80%] leading-20 tracking-tight"
                 >
                   Prompt and create math
                   videos with AI
@@ -74,7 +64,7 @@ export default function Home() {
 
           {/* Demo video */}
           <div className="w-full py-4 mt-16">
-            <div className="w-[min(90%,70rem)] aspect-[16/9] mx-auto rounded-lg bg-slate-800/30 ">
+            <div className="w-[min(90%,70rem)] aspect-16/9 mx-auto rounded-lg bg-slate-800/30 ">
               <Plyr 
                 source={{
                   type: 'video',
@@ -85,7 +75,8 @@ export default function Home() {
                       type: 'video/mp4',
                       size: 720
                     }
-                  ]
+                  ],
+                  poster: '/anim-video-thumbnail.png'
                 }}
               />
             </div>
